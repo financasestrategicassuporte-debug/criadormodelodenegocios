@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GFB 2.0 · Arquiteto de Modelo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07101E;--card:#0E1929;--surf:#152538;--bord:#1D3050;--bordh:#2A4570;
+  --acc:#F2C811;--accd:rgba(242,200,17,.07);--accb:rgba(242,200,17,.18);
+  --grn:#34D399;--grnd:rgba(52,211,153,.1);
+  --red:#F87171;--redd:rgba(248,113,113,.1);
+  --org:#FBBF24;--orgd:rgba(251,191,36,.1);
+  --blu:#60A5FA;--blud:rgba(96,165,250,.1);--blub:rgba(96,165,250,.25);
+  --t1:#EDF4FF;--t2:#7A91B0;--t3:#354B68;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;font-size:14px;line-height:1.5}
+
+.hdr{height:58px;background:var(--card);border-bottom:1px solid var(--bord);display:flex;align-items:center;gap:14px;padding:0 20px;position:sticky;top:0;z-index:100;overflow:hidden}
+.logo{font-size:16px;font-weight:900;color:var(--acc);white-space:nowrap;letter-spacing:-.5px}
+.logo small{color:var(--t3);font-weight:400;font-size:13px}
+.hdiv{width:1px;height:24px;background:var(--bord);flex-shrink:0}
+.biz{flex:1;background:var(--surf);border:1px solid var(--bord);border-radius:8px;height:36px;padding:0 12px;color:var(--t1);font:700 14px 'Inter',sans-serif;min-width:0}
+.biz:focus{outline:none;border-color:var(--acc)}
+.biz::placeholder{color:var(--t3);font-weight:400}
+.hprog{position:absolute;bottom:0;left:0;height:2px;background:var(--acc);opacity:.6;transition:width .35s}
+.hstep{background:var(--surf);border:1px solid var(--bord);border-radius:8px;padding:5px 14px;font-size:11px;font-weight:700;color:var(--t2);white-space:nowrap;flex-shrink:0}
+.hstep span{color:var(--acc)}
+.hscore{display:flex;align-items:center;gap:8px;background:var(--surf);border:1px solid var(--bord);border-radius:8px;padding:5px 12px;flex-shrink:0}
+.hscore b{font:800 14px 'JetBrains Mono',monospace;color:var(--acc)}
+.hscore span{font-size:10px;color:var(--t3)}
+
+.ws{display:grid;grid-template-columns:210px 1fr 300px;height:calc(100vh - 58px)}
+
+.stepper{border-right:1px solid var(--bord);overflow-y:auto;padding:8px 0}
+.sitem{display:flex;cursor:pointer;position:relative;transition:background .12s}
+.sitem::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:transparent;transition:background .15s}
+.sitem.active::before{background:var(--acc)}
+.sitem:hover{background:var(--surf)}
+.sitem.active{background:var(--accd)}
+.sinner{display:flex;align-items:center;gap:9px;padding:9px 14px 9px 16px;flex:1;min-width:0}
+.snum{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--bord);display:flex;align-items:center;justify-content:center;font:700 10px 'JetBrains Mono',monospace;color:var(--t3);flex-shrink:0;transition:all .15s}
+.sitem.active .snum{border-color:var(--acc);color:var(--acc);background:var(--accd)}
+.sname{font-size:11px;font-weight:600;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.sitem.active .sname{color:var(--t1)}
+.sscore{font:700 10px 'JetBrains Mono',monospace;width:22px;text-align:right;flex-shrink:0}
+.sscore.g{color:var(--grn)}.sscore.y{color:var(--org)}.sscore.r{color:var(--red)}.sscore.n{color:var(--t3)}
+.sfoot{padding:12px 14px;border-top:1px solid var(--bord);margin-top:4px}
+.genbtn{width:100%;background:var(--acc);color:#000;border:none;border-radius:7px;padding:9px;font:700 11px 'Inter',sans-serif;cursor:pointer}
+.genbtn:hover{background:#FFD700}
+.sauto-note{padding:10px 14px;font-size:10px;color:var(--t3);line-height:1.5;border-top:1px solid var(--bord)}
+
+.farea{overflow-y:auto;padding:28px 36px;display:flex;flex-direction:column}
+.eyebrow{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--acc);margin-bottom:5px}
+.bhead{font-size:25px;font-weight:900;letter-spacing:-1px;margin-bottom:8px;line-height:1.1}
+.bsub{font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:8px}
+.btest{font-size:12px;color:var(--acc);font-style:italic;background:var(--accd);border-left:3px solid var(--acc);padding:8px 12px;border-radius:0 6px 6px 0;margin-bottom:22px}
+.fg{margin-bottom:18px}
+.fl{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;font-weight:600;color:var(--t1);margin-bottom:8px}
+.fl-hint{font-size:10px;color:var(--t3);font-weight:400}
+.ti,.si,.ta{width:100%;background:var(--surf);border:1.5px solid var(--bord);border-radius:8px;padding:10px 13px;color:var(--t1);font:13px 'Inter',sans-serif}
+.ti:focus,.si:focus,.ta:focus{outline:none;border-color:var(--acc)}
+.ti::placeholder,.ta::placeholder{color:var(--t3)}
+.ta{min-height:62px;resize:vertical;line-height:1.6}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pills{display:flex;flex-wrap:wrap;gap:7px}
+.pill{padding:7px 14px;border-radius:7px;border:1.5px solid var(--bord);background:transparent;color:var(--t2);font:600 12px 'Inter',sans-serif;cursor:pointer;transition:all .12s;white-space:nowrap;user-select:none}
+.pill:hover{border-color:var(--acc);color:var(--t1);background:var(--accd)}
+.pill.on{background:var(--accb);border-color:var(--acc);color:var(--acc)}
+.multi-hint{font-size:10px;color:var(--t3);margin-top:6px}
+
+.srow{display:flex;align-items:center;gap:12px;background:var(--surf);border:1.5px solid var(--bord);border-radius:8px;padding:10px 14px}
+.strack{flex:1;height:4px;-webkit-appearance:none;appearance:none;background:var(--bord);border-radius:2px;cursor:pointer;outline:none}
+.strack::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;background:var(--acc);cursor:pointer;box-shadow:0 0 0 3px rgba(242,200,17,.15)}
+.sval{font:900 17px 'JetBrains Mono',monospace;color:var(--acc);min-width:24px;text-align:right}
+.slim{font-size:9px;color:var(--t3);flex-shrink:0;width:54px}
+.slim.r{text-align:right}
+
+.fnav{margin-top:auto;padding-top:22px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--bord)}
+.nbtn{padding:9px 20px;border-radius:7px;font:600 12px 'Inter',sans-serif;cursor:pointer;border:none;transition:all .12s}
+.nprev{background:var(--surf);border:1.5px solid var(--bord);color:var(--t2)}
+.nprev:hover:not(:disabled){border-color:var(--bordh);color:var(--t1)}
+.nprev:disabled{opacity:.3;cursor:not-allowed}
+.nnext{background:var(--acc);color:#000}
+.nnext:hover{background:#FFD700}
+
+.ai-assist-box{background:linear-gradient(135deg,var(--blud),transparent);border:1.5px solid var(--blub);border-radius:10px;padding:16px;margin-bottom:20px}
+.ai-assist-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.ai-assist-txt{font-size:12px;color:var(--t2);line-height:1.5;flex:1;min-width:200px}
+.ai-assist-txt strong{color:var(--t1)}
+.ai-assist-btn{background:var(--blu);color:#04122B;border:none;padding:9px 16px;border-radius:7px;font:700 12px 'Inter',sans-serif;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px;flex-shrink:0}
+.ai-assist-btn:hover{filter:brightness(1.1)}
+.ai-assist-btn:disabled{opacity:.5;cursor:not-allowed}
+.ai-result{margin-top:13px;padding-top:13px;border-top:1px solid var(--blub);font-size:12px;color:var(--t2);line-height:1.65;display:none}
+.ai-result.show{display:block}
+.ai-result b{color:var(--t1)}
+.ai-mini-dots{display:flex;gap:4px;padding:6px 0}
+.ai-mini-dots span{width:5px;height:5px;border-radius:50%;background:var(--blu);animation:b 1.2s infinite}
+.ai-mini-dots span:nth-child(2){animation-delay:.2s}.ai-mini-dots span:nth-child(3){animation-delay:.4s}
+.robar-row{display:flex;align-items:center;gap:7px;margin-top:6px}
+.robar-lbl{font-size:10px;color:var(--t2);width:120px;flex-shrink:0}
+.robar-track{flex:1;height:4px;background:var(--surf);border-radius:2px;overflow:hidden}
+.robar-fill{height:100%;background:var(--blu);border-radius:2px}
+.robar-val{font:700 10px 'JetBrains Mono',monospace;width:20px;text-align:right;color:var(--blu)}
+
+.dir-cards{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.dir-card{background:var(--surf);border:1.5px solid var(--bord);border-radius:9px;padding:14px 16px;cursor:pointer;transition:all .12s}
+.dir-card:hover{border-color:var(--blu)}
+.dir-card.chosen{border-color:var(--acc);background:var(--accd)}
+.dir-card-title{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:4px}
+.dir-card-result{font-size:12px;color:var(--blu);margin-bottom:6px}
+.dir-card-why{font-size:11px;color:var(--t2);line-height:1.5}
+.dir-card-tag{display:inline-block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);background:var(--card);border:1px solid var(--bord);border-radius:10px;padding:2px 8px;margin-top:8px}
+
+.ctx-recall{background:var(--surf);border:1px solid var(--bord);border-radius:8px;padding:11px 13px;font-size:11px;color:var(--t2);line-height:1.55;margin-bottom:18px}
+.ctx-recall b{color:var(--acc);display:block;font-size:9px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+
+.rpanel{border-left:1px solid var(--bord);overflow-y:auto;display:flex;flex-direction:column}
+.psec{padding:16px;border-bottom:1px solid var(--bord)}
+.ptitle{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--t3);margin-bottom:13px;display:flex;align-items:center;gap:7px}
+.ptitle::after{content:'';flex:1;height:1px;background:var(--bord)}
+.frow2{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.flbl2{font-size:11px;color:var(--t2);flex:1}
+.finp{width:90px;text-align:right;background:var(--surf);border:1px solid var(--bord);border-radius:6px;padding:4px 8px;color:var(--t1);font:500 12px 'JetBrains Mono',monospace}
+.finp:focus{outline:none;border-color:var(--acc)}
+.fdiv{height:1px;background:var(--bord);margin:10px 0}
+.fres{display:flex;justify-content:space-between;align-items:center;padding:9px 11px;border-radius:7px;margin-bottom:6px}
+.fres.pos{background:var(--grnd);border:1px solid rgba(52,211,153,.2)}
+.fres.neg{background:var(--redd);border:1px solid rgba(248,113,113,.2)}
+.fres.neu{background:var(--surf);border:1px solid var(--bord)}
+.frlbl{font-size:11px;color:var(--t2)}
+.frval{font:800 15px 'JetBrains Mono',monospace}
+.fres.pos .frval{color:var(--grn)}.fres.neg .frval{color:var(--red)}.fres.neu .frval{color:var(--t1)}
+.cobra-pills{display:flex;gap:6px;margin-bottom:10px}
+.cobra-pill{flex:1;text-align:center;padding:7px 4px;border-radius:6px;border:1.5px solid var(--bord);background:transparent;color:var(--t2);font:700 10px 'Inter',sans-serif;cursor:pointer}
+.cobra-pill.on{background:var(--accb);border-color:var(--acc);color:var(--acc)}
+
+.scorelist{display:flex;flex-direction:column;gap:6px}
+.scrow{display:flex;align-items:center;gap:7px}
+.scname{font-size:10px;color:var(--t2);width:78px;flex-shrink:0}
+.scbar{flex:1;height:5px;background:var(--bord);border-radius:3px;overflow:hidden}
+.scfill{height:100%;border-radius:3px;transition:width .4s}
+.scfill.g{background:var(--grn)}.scfill.y{background:var(--org)}.scfill.r{background:var(--red)}
+.scval{font:700 10px 'JetBrains Mono',monospace;width:22px;text-align:right}
+.scauto{font-size:8px;color:var(--blu);margin-left:2px}
+
+.output{border-top:2px solid var(--acc);padding:36px 40px}
+.outhdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;gap:16px}
+.outtitle{font-size:28px;font-weight:900;letter-spacing:-1px}
+.outtitle span{color:var(--acc)}
+.outsub{font-size:13px;color:var(--t2);margin-top:4px}
+.aibtn{background:var(--acc);color:#000;border:none;padding:12px 24px;border-radius:8px;font:700 13px 'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;gap:7px;white-space:nowrap;transition:all .15s;flex-shrink:0}
+.aibtn:hover{background:#FFD700;transform:translateY(-1px)}
+.aibtn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.principle{text-align:center;font-size:12px;color:var(--t3);letter-spacing:.04em;margin:18px 0 30px;font-style:italic}
+.principle strong{color:var(--acc);font-style:normal}
+
+.diagram-wrap{display:grid;grid-template-columns:1.3fr 1fr;gap:28px;margin-bottom:32px;align-items:start}
+.diagram{display:flex;align-items:center;gap:0;background:var(--card);border:1px solid var(--bord);border-radius:12px;padding:32px 24px;min-height:260px}
+.dprod-box{border:2px solid var(--t1);border-radius:4px;padding:20px 26px;font:900 18px 'Inter',sans-serif;letter-spacing:.04em;text-align:center;color:var(--t1);flex-shrink:0;background:var(--surf)}
+.darrow{width:50px;height:2px;background:var(--t2);position:relative;flex-shrink:0;margin:0 4px}
+.darrow::after{content:'';position:absolute;right:0;top:50%;transform:translateY(-50%);border-left:9px solid var(--t2);border-top:5px solid transparent;border-bottom:5px solid transparent}
+.dgrid{flex:1;border:2px solid var(--t1);border-radius:4px;display:grid;grid-template-columns:1fr 1fr;background:var(--surf)}
+.dgrid.cols1{grid-template-columns:1fr}
+.dcell{border:1px solid var(--bordh);padding:14px 16px;font:700 12px 'Inter',sans-serif;color:var(--t1);text-transform:uppercase;letter-spacing:.03em;display:flex;align-items:center;min-height:54px;line-height:1.4}
+.dcell.span2{grid-column:1/-1}
+.dcell.empty{color:var(--t3);font-weight:400;text-transform:none;font-style:italic}
+
+.dinfo{background:var(--card);border:1px solid var(--bord);border-radius:12px;padding:20px}
+.dinfo-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:14px}
+.dinfo-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bord)}
+.dinfo-row:last-child{border-bottom:none}
+.dinfo-lbl{font-size:11px;color:var(--t2)}
+.dinfo-val{font:700 13px 'JetBrains Mono',monospace;color:var(--t1)}
+.dinfo-val.g{color:var(--grn)}.dinfo-val.y{color:var(--org)}.dinfo-val.r{color:var(--red)}
+.dinfo-verdict{margin-top:14px;padding:12px 14px;border-radius:8px;text-align:center;font:800 13px 'Inter',sans-serif}
+.dinfo-verdict.g{background:var(--grnd);color:var(--grn);border:1px solid rgba(52,211,153,.3)}
+.dinfo-verdict.y{background:var(--orgd);color:var(--org);border:1px solid rgba(251,191,36,.3)}
+.dinfo-verdict.r{background:var(--redd);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+.dinfo-sep{height:1px;background:var(--bord);margin:10px 0}
+
+.effort-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:24px}
+.effort-card{background:var(--card);border:1px solid var(--bord);border-radius:12px;padding:18px}
+.effort-card-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:12px}
+.team-icons{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.team-icon{font-size:20px}
+.team-more{font-size:12px;color:var(--t3);font-weight:700;align-self:center}
+.effort-big{font:800 24px 'JetBrains Mono',monospace;margin-bottom:4px}
+.effort-sub{font-size:11px;color:var(--t2);line-height:1.5}
+.lifecycle-badge{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;font:700 13px 'Inter',sans-serif;margin-bottom:10px}
+.lifecycle-badge.introducao{background:var(--blud);color:var(--blu);border:1px solid var(--blub)}
+.lifecycle-badge.crescimento{background:var(--grnd);color:var(--grn);border:1px solid rgba(52,211,153,.3)}
+.lifecycle-badge.maturidade{background:var(--orgd);color:var(--org);border:1px solid rgba(251,191,36,.3)}
+.lifecycle-badge.declinio{background:var(--redd);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+.invest-sim-box{background:var(--card);border:1px solid var(--bord);border-radius:12px;padding:20px 22px;margin-bottom:24px}
+.warn-banner{background:linear-gradient(135deg,rgba(248,113,113,.15),transparent);border:2px solid rgba(248,113,113,.4);border-radius:10px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:flex-start;gap:12px}
+.warn-banner-icon{font-size:22px;flex-shrink:0}
+.warn-banner-title{font:800 13px 'Inter',sans-serif;color:var(--red);margin-bottom:3px}
+.warn-banner-text{font-size:12px;color:var(--t2);line-height:1.6}
+.reco-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;font:800 13px 'Inter',sans-serif}
+.reco-badge.continuar{background:var(--grnd);color:var(--grn);border:1px solid rgba(52,211,153,.3)}
+.reco-badge.migrar{background:var(--orgd);color:var(--org);border:1px solid rgba(251,191,36,.3)}
+.reco-badge.desistir{background:var(--redd);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+.score-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:30px}
+.saved-models-box{background:var(--card);border:1px solid var(--bord);border-radius:12px;padding:20px 22px;margin-bottom:24px}
+.sm-save-row{display:flex;gap:10px;align-items:flex-end;margin-bottom:18px;flex-wrap:wrap}
+.sm-save-row .fg{margin-bottom:0;flex:1;min-width:220px}
+.sm-feedback{font-size:12px;color:var(--grn);margin-top:8px;display:none}
+.sm-feedback.show{display:block}
+.saved-model-card{display:flex;align-items:center;gap:12px;background:var(--surf);border:1px solid var(--bord);border-radius:9px;padding:12px 14px;margin-bottom:8px}
+.sm-check{flex-shrink:0;display:flex}
+.sm-check input{width:16px;height:16px;accent-color:var(--acc);cursor:pointer}
+.sm-info{flex:1;min-width:0}
+.sm-name{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sm-meta{font-size:11px;color:var(--t2)}
+.sm-meta b.g{color:var(--grn)}.sm-meta b.y{color:var(--org)}.sm-meta b.r{color:var(--red)}
+.sm-btn{background:var(--surf);border:1.5px solid var(--bord);color:var(--t2);border-radius:7px;padding:7px 12px;font:600 11px 'Inter',sans-serif;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.sm-btn:hover{border-color:var(--acc);color:var(--t1)}
+.sm-btn.del{color:var(--red);border-color:rgba(248,113,113,.25)}
+.sm-btn.del:hover{border-color:var(--red);background:var(--redd)}
+.compare-result{margin-top:18px}
+.rank-card{display:flex;gap:12px;align-items:flex-start;background:var(--surf);border:1px solid var(--bord);border-radius:9px;padding:13px 15px;margin-bottom:8px}
+.rank-card.first{border-color:var(--acc);background:var(--accd)}
+.rank-pos{width:26px;height:26px;border-radius:50%;background:var(--bord);color:var(--t1);display:flex;align-items:center;justify-content:center;font:800 12px 'JetBrains Mono',monospace;flex-shrink:0}
+.rank-card.first .rank-pos{background:var(--acc);color:#000}
+.rank-name{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:2px}
+.rank-desc{font-size:12px;color:var(--t2);line-height:1.5}
+.score-card{background:var(--card);border:1px solid var(--bord);border-radius:9px;padding:13px;text-align:center;position:relative}
+.score-card-icon{font-size:16px;margin-bottom:4px}
+.score-card-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);margin-bottom:6px}
+.score-card-val{font:800 22px 'JetBrains Mono',monospace}
+.score-card-val.g{color:var(--grn)}.score-card-val.y{color:var(--org)}.score-card-val.r{color:var(--red)}
+.score-card-auto{position:absolute;top:6px;right:8px;font-size:8px;color:var(--blu);font-weight:700}
+
+.aibox{background:var(--card);border:1px solid var(--bord);border-radius:10px;overflow:hidden}
+.aibar{background:var(--surf);padding:12px 16px;border-bottom:1px solid var(--bord);display:flex;align-items:center;gap:7px}
+.aidot{width:6px;height:6px;border-radius:50%;background:var(--acc);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.aibody{padding:24px;min-height:90px}
+.ai-ph{text-align:center;padding:36px 16px;color:var(--t3)}
+.ai-ph p{font-size:13px;margin-top:9px;line-height:1.6}
+.doc-section{margin-bottom:20px}
+.doc-section h3{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--acc);margin-bottom:8px}
+.doc-section p,.doc-section li{font-size:13px;color:var(--t2);line-height:1.65}
+.doc-section ul{padding-left:17px}
+.doc-section li{margin-bottom:3px}
+.final-q-box{background:linear-gradient(135deg,var(--accd),transparent);border:1.5px solid var(--accb);border-radius:10px;padding:20px;margin-bottom:22px}
+.final-q-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--acc);margin-bottom:8px}
+.final-q-text{font-size:15px;font-weight:700;color:var(--t1);line-height:1.5;font-style:italic;margin-bottom:10px}
+.final-q-answer{font-size:13px;color:var(--t2);line-height:1.7}
+.doc-block{background:var(--surf);border:1px solid var(--bord);border-radius:8px;padding:12px 14px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start}
+.doc-block-num{background:var(--acc);color:#000;width:19px;height:19px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;margin-top:1px}
+.doc-block-title{font-size:13px;font-weight:700;margin-bottom:2px;color:var(--t1)}
+.doc-block-desc{font-size:12px;color:var(--t2);line-height:1.5}
+.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+.summary-card{background:var(--surf);border:1px solid var(--bord);border-radius:8px;padding:12px;text-align:center}
+.summary-card-lbl{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px}
+.summary-card-val{font:800 16px 'JetBrains Mono',monospace;color:var(--t1)}
+
+.dots{display:flex;gap:5px;justify-content:center;padding:32px}
+.dots span{width:7px;height:7px;border-radius:50%;background:var(--acc);animation:b 1.2s infinite}
+.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+@keyframes b{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+input[type=number]::-webkit-inner-spin-button{opacity:1}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="logo">GFB 2.0 <small>Arquiteto de Modelo</small></div>
+  <div class="hdiv"></div>
+  <input class="biz" id="bizName" type="text" placeholder="Nome da oferta / negócio..." oninput="M.nome=this.value;upd()">
+  <div class="hstep" id="hstep">Etapa <span>1</span> de 8</div>
+  <div class="hscore" id="hscoreBox"><b id="hscoreVal">—</b><span>/100</span></div>
+  <div class="hprog" id="hprog" style="width:0%"></div>
+</header>
+
+<div class="ws">
+  <nav class="stepper" id="stepper"></nav>
+  <main class="farea" id="farea"></main>
+  <aside class="rpanel">
+    <div class="psec">
+      <div class="ptitle">Notas por Bloco</div>
+      <div class="scorelist" id="scorelist"></div>
+    </div>
+    <div class="psec">
+      <div class="ptitle">Cálculo (Margem)</div>
+      <div class="fg" style="margin-bottom:12px">
+        <div class="fl" style="margin-bottom:6px">Formato de cobrança</div>
+        <div class="cobra-pills">
+          <button class="cobra-pill" id="cobra_unico" onclick="setCobranca('unico')">💵 Único</button>
+          <button class="cobra-pill" id="cobra_mensal" onclick="setCobranca('mensalidade')">🔄 Mensal</button>
+        </div>
+      </div>
+      <div class="frow2"><span class="flbl2" id="lbl_ticket">💰 Valor (R$)</span><input type="number" class="finp" min="0" placeholder="0" oninput="setF('ticket',+this.value)"></div>
+      <div class="frow2"><span class="flbl2">📣 CAC (R$)</span><input type="number" class="finp" min="0" placeholder="0" oninput="setF('cac',+this.value)"></div>
+      <div class="frow2"><span class="flbl2">🤝 Comissão (%)</span><input type="number" class="finp" min="0" max="100" placeholder="0" oninput="setF('comissao',+this.value)"></div>
+      <div class="frow2"><span class="flbl2">🚚 Custo entrega</span><input type="number" class="finp" min="0" placeholder="0" oninput="setF('custo_entrega',+this.value)"></div>
+      <div class="frow2"><span class="flbl2">⚙️ Custo operação</span><input type="number" class="finp" min="0" placeholder="0" oninput="setF('custo_operacao',+this.value)"></div>
+      <div class="frow2"><span class="flbl2">🧾 Imposto (%)</span><input type="number" class="finp" min="0" max="100" value="6" oninput="setF('imposto',+this.value)"></div>
+      <div class="frow2"><span class="flbl2">🏢 Custos fixos/mês</span><input type="number" class="finp" min="0" placeholder="0" oninput="setF('custos_fixos',+this.value)"></div>
+      <div class="frow2" id="row_churn"><span class="flbl2">📉 Churn (%/mês)</span><input type="number" class="finp" min="0" max="100" placeholder="0" oninput="setF('churn',+this.value)"></div>
+      <div class="fdiv"></div>
+      <div class="fres" id="rres"><div><div class="frlbl">Lucro/cliente</div><div id="rnota" style="font-size:9px;color:var(--t3)"></div></div><div class="frval" id="rval">—</div></div>
+      <div class="fres neu"><div class="frlbl">Margem</div><div class="frval" id="rmarg" style="font-size:13px">—</div></div>
+      <div class="fres neu"><div><div class="frlbl">Faturamento/mês</div></div><div class="frval" id="rfat" style="font-size:12px">—</div></div>
+      <div class="fres neu"><div><div class="frlbl">EBITDA/mês</div><div style="font-size:9px;color:var(--t3)">geração de caixa</div></div><div class="frval" id="rebitda" style="font-size:12px">—</div></div>
+    </div>
+  </aside>
+</div>
+
+<!-- OUTPUT -->
+<section class="output" id="outputSec">
+  <div class="outhdr">
+    <div>
+      <div class="outtitle">Seu Modelo <span>de Negócio</span></div>
+      <div class="outsub">Framework GFB 2.0 — formatado como um arquiteto de negócios (Flávio Augusto / Conrado Adolpho) formataria: simples, prático e escalável</div>
+    </div>
+    <button class="aibtn" id="aibtn" onclick="generateAnalysis()">✦ Gerar Análise com IA</button>
+  </div>
+  <div class="principle">"Dinheiro é um jogo de <strong>cálculo</strong>, <strong>complexidade</strong> e <strong>produto</strong>."</div>
+
+  <div class="diagram-wrap">
+    <div class="diagram" id="diagram"></div>
+    <div class="dinfo" id="dinfo"></div>
+  </div>
+
+  <div class="effort-row" id="effortRow"></div>
+
+  <div class="invest-sim-box">
+    <div class="ptitle" style="margin-bottom:14px">💸 Simulação de Investimento</div>
+    <p style="font-size:12px;color:var(--t2);line-height:1.6;margin-bottom:14px">Se você investir um valor fixo por mês em aquisição (além do que já faz organicamente), quanto isso gera de faturamento, EBITDA e lucro em 6, 12 e 24 meses — com menos esforço pessoal, já que o crescimento vem do capital, não das suas horas.</p>
+    <div class="fg" style="max-width:280px">
+      <div class="fl">Investimento mensal em aquisição (R$)</div>
+      <input type="number" class="ti" placeholder="0" oninput="M.investimento.valor_mensal=+this.value;renderInvestSim()">
+    </div>
+    <div class="proj-table" id="investSimCards" style="margin-top:6px"></div>
+  </div>
+
+  <div class="score-grid" id="scoreGrid"></div>
+
+  <div class="saved-models-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <div class="ptitle" style="margin-bottom:0">📚 Salvar & Comparar Modelos</div>
+      <div id="storageStatus"></div>
+    </div>
+    <p style="font-size:12px;color:var(--t2);line-height:1.6;margin-bottom:16px">Salve este modelo e crie outros (mude as respostas e salve de novo) para comparar lado a lado — a IA aponta qual tem o melhor caminho pra você ficar rico, e por quê.</p>
+    <div class="sm-save-row">
+      <div class="fg"><div class="fl">Nome para salvar</div><input class="ti" id="saveNameInput" placeholder="Ex: PAV Tradicional, PAV com Recorrência..."></div>
+      <button class="aibtn" id="saveBtn" onclick="saveCurrentModel()">💾 Salvar Este Modelo</button>
+    </div>
+    <div class="sm-feedback" id="saveFeedback">✅ Modelo salvo!</div>
+    <div id="savedModelsList"></div>
+    <button class="aibtn" id="compareBtn" onclick="compareModels()" style="display:none;background:var(--blu);color:#04122B;margin-top:8px">⚖️ Comparar Selecionados com IA</button>
+    <div id="compareResult" class="compare-result"></div>
+  </div>
+
+  <div class="aibox">
+    <div class="aibar"><div class="aidot"></div><span style="font-size:12px;font-weight:600">Diagnóstico do Modelo</span><span style="color:var(--t3);font-size:10px;margin-left:auto">Claude AI</span></div>
+    <div class="aibody" id="aibody">
+      <div class="ai-ph">
+        <div style="font-size:34px">⚙️</div>
+        <p>Preencha as etapas e clique em <strong style="color:var(--acc)">Gerar Análise com IA</strong> para receber o diagnóstico completo: faturamento, lucro, tempo alocado e se o modelo é bom ou ruim — com as mudanças já sugeridas, incluindo se vale a pena continuar, migrar ou desistir.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+// ═══════════ SUPABASE CONFIG (REST puro, sem SDK — evita DataCloneError em iframes) ═══════════
+const SUPABASE_URL = 'https://vsnfqohptlporesdfrtx.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzbmZxb2hwdGxwb3Jlc2RmcnR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNzM4NjEsImV4cCI6MjA5Njc0OTg2MX0.SkHbHjee7GGqPX_sQdVdjt2QQP_m5naJ0IwY1utC_j0';
+const SUPABASE_TABLE = 'gfb_models';
+const SUPABASE_REST_URL = SUPABASE_URL ? SUPABASE_URL.replace(/\/$/,'')+'/rest/v1/'+SUPABASE_TABLE : '';
+
+let supabaseStatus = (SUPABASE_URL && SUPABASE_ANON_KEY) ? 'checking' : 'not_configured'; // not_configured | checking | connected | unreachable
+async function checkSupabaseReachable(){
+  if(supabaseStatus!=='checking') return;
+  try{
+    await sbRequest('GET','?select=id&limit=1',{});
+    supabaseStatus='connected';
+  }catch(e){
+    supabaseStatus='unreachable';
+    console.warn('Supabase inacessível neste ambiente, usando armazenamento local. Motivo:',e.message);
+  }
+}
+
+function sbHeaders(extra){
+  return Object.assign({
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': 'Bearer '+SUPABASE_ANON_KEY,
+    'Content-Type': 'application/json'
+  }, extra||{});
+}
+async function sbRequest(method,query,opts){
+  opts=opts||{};
+  const url=SUPABASE_REST_URL+(query||'');
+  let res;
+  try{
+    res=await fetch(url,{method,headers:sbHeaders(opts.headers),body:opts.body?JSON.stringify(opts.body):undefined});
+  }catch(networkErr){
+    throw new Error('Falha de conexão com o Supabase (Failed to fetch). Verifique a internet e tente novamente.');
+  }
+  if(!res.ok){
+    let msg='Erro HTTP '+res.status;
+    try{const err=await res.json();if(err.message)msg=err.message;}catch(_){}
+    throw new Error(msg);
+  }
+  if(res.status===204) return null;
+  try{return await res.json();}catch(_){return null;}
+}
+async function sbInsert(record){
+  await sbRequest('POST','',{headers:{Prefer:'return=minimal'},body:record});
+}
+async function sbList(){
+  return await sbRequest('GET','?select=*&order=created_at.desc',{})||[];
+}
+async function sbDelete(id){
+  await sbRequest('DELETE','?id=eq.'+encodeURIComponent(id),{headers:{Prefer:'return=minimal'}});
+}
+
+// ═══════════ STATE ═══════════
+const M = {
+  nome:'',
+  situacao:{contexto:'',momento:'',segmento:'',dor_principal:'',custo_mes:0,custo_oportunidade:'',acelera_ou_atrasa:''},
+  mercado:{tamanho:5,tendencia:5,dinheiro:5,resistencia:5,necessidade:5,resumo:'',ciclo_vida:''},
+  dor:{intensidade:5,obsessao:5,custo_financeiro:5,custo_tempo:5,peso_emocional:5,resumo:''},
+  produto:{ideia_inicial:'',sugestoes:[],escolhida:'',formatos:[],estimativa_mes:0,duracao_meses:0,horas_cliente:0,horas_fundador:0,pessoas:1,fundador_sai:5,padronizacao:5,suporte_baixo:5,independencia:5},
+  oferta:{nome:'',resultado:'',clareza:5,explicar:5,vender:5,indicar:5},
+  sistema:{aquisicao:5,conversao:5,onboarding:5,entrega_doc:5,renovacao:5},
+  complexidade:{pessoas_necessarias:0,comercial:5,entrega:5,gestao:5,escala_teste:5,escala_explicacao:''},
+  margem:{cobranca:'unico',ticket:0,cac:0,comissao:0,custo_entrega:0,custo_operacao:0,imposto:6,custos_fixos:0,churn:0},
+  capacidade:{hoje:0,mesma_estrutura:0,dobro_lucro:5},
+  investimento:{valor_mensal:0}
+};
+let CUR=0;
+const FORMAT_LABELS={treinamento_vendas:'Treinamento de Vendas',papo_dono:'Papo de Dono',entrega_individual:'Entrega Individual',consultor:'Consultor',plataforma:'Plataforma',mentoria_grupo:'Mentoria em Grupo',comunidade:'Comunidade',conteudo_gravado:'Conteúdo Gravado',ia_bot:'IA / Bot',evento_presencial:'Evento Presencial'};
+
+// ═══════════ AI HELPER ═══════════
+function repairJSON(str){
+  let s=str;
+  // normalize smart/curly quotes to straight quotes
+  s=s.replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"');
+  // strip control characters (keep \n \t) that break JSON.parse
+  s=s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'');
+  // escape literal newlines/tabs that appear INSIDE string values
+  s=s.replace(/"((?:[^"\\]|\\.)*)"/g,(m,inner)=>'"'+inner.replace(/\n/g,'\\n').replace(/\t/g,'\\t')+'"');
+  // remove trailing commas before } or ]
+  s=s.replace(/,(\s*[}\]])/g,'$1');
+  return s;
+}
+function extractJSONBlock(text){
+  const clean=text.replace(/```json|```/g,'');
+  const s=clean.indexOf('{'),e=clean.lastIndexOf('}');
+  if(s===-1||e===-1) throw new Error('Resposta sem JSON válido');
+  return clean.slice(s,e+1);
+}
+async function callClaudeRaw(prompt,useSearch,maxTokens){
+  const body={model:'claude-sonnet-4-6',max_tokens:maxTokens||2200,messages:[{role:'user',content:prompt}]};
+  if(useSearch) body.tools=[{type:'web_search_20250305',name:'web_search'}];
+  let res;
+  try{
+    res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  }catch(networkErr){
+    const e=new Error('Falha de conexão com a IA (Failed to fetch). Verifique sua internet e tente novamente — se persistir, recarregue a página.');
+    e.isNetwork=true;
+    throw e;
+  }
+  if(!res.ok){
+    let msg='Erro HTTP '+res.status;
+    try{const errData=await res.json();if(errData.error)msg=errData.error.message||msg;}catch(_){}
+    const e=new Error(msg);
+    e.isNetwork = res.status>=500||res.status===429;
+    throw e;
+  }
+  const data=await res.json();
+  if(data.error){const e=new Error(data.error.message||'Erro na API');throw e;}
+  return(data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n');
+}
+function wait(ms){return new Promise(r=>setTimeout(r,ms))}
+async function callClaudeJSON(prompt,useSearch,maxTokens){
+  const strictSuffix=`
+
+IMPORTANTE — formato da resposta: responda APENAS com um JSON válido e completo (sem markdown, sem texto antes/depois). Dentro dos valores de texto: não use aspas duplas (use aspas simples ou reformule), não quebre linha (escreva tudo em uma linha contínua), e não deixe vírgula sobrando antes de } ou ].`;
+  let lastErr=null;
+  for(let attempt=0;attempt<4;attempt++){
+    try{
+      const p=attempt<2?prompt:prompt+strictSuffix;
+      const text=await callClaudeRaw(p,useSearch,maxTokens);
+      const block=extractJSONBlock(text);
+      try{
+        return JSON.parse(block);
+      }catch(err1){
+        return JSON.parse(repairJSON(block));
+      }
+    }catch(err){
+      lastErr=err;
+      if(err.isNetwork) await wait(900*(attempt+1));
+    }
+  }
+  if(lastErr&&lastErr.isNetwork) throw lastErr;
+  throw new Error('A IA retornou uma resposta em formato inválido após algumas tentativas. Tente novamente em alguns segundos.'+(lastErr?' ('+lastErr.message+')':''));
+}
+function ctxBlock(){
+  return`SITUAÇÃO: ${M.situacao.contexto||'N/I'}
+MOMENTO: ${M.situacao.momento||'N/I'}
+SEGMENTO: ${M.situacao.segmento||'N/I'}
+DOR PRINCIPAL: ${M.situacao.dor_principal||'N/I'} (custo mensal estimado: R$${M.situacao.custo_mes})`;
+}
+
+// ═══════════ PAGES (8 etapas) ═══════════
+const PAGES=[
+{id:'situacao',name:'Situação',icon:'📋',
+ sub:'Conte sua situação atual e a dor do seu cliente. Essa informação guia toda a análise — mercado, produto e diagnóstico final.',
+ html:()=>`
+  <div class="fg"><div class="fl">Descreva sua situação atual <span class="fl-hint">quanto mais contexto, melhor</span></div>
+  <textarea class="ta" rows="4" placeholder="Ex: Tenho uma consultoria para academias de bairro há 2 anos. Vendo um produto por R$24.997 mas a entrega depende 100% de mim. Estão surgindo muitas academias low-cost que estão quebrando meus clientes..." oninput="M.situacao.contexto=this.value">${M.situacao.contexto}</textarea></div>
+  <div class="fg"><div class="fl">Em que momento seu negócio está?</div>
+  <div class="pills">${sp('situacao','momento',[['ideia','💡 Ainda é uma ideia'],['rodando','⚙️ Já rodo, preciso melhorar'],['validado','🚀 Validado, quero escalar']])}</div></div>
+  <div class="fg"><div class="fl">Segmento / nicho que pretende atender</div>
+  <input class="ti" placeholder="Ex: academias e estúdios fitness de bairro no Brasil" oninput="M.situacao.segmento=this.value" value="${M.situacao.segmento}"></div>
+  <div class="fg"><div class="fl">Qual é a DOR/frustração principal do seu cliente?</div>
+  <textarea class="ta" rows="3" placeholder="Ex: o dono não sabe de onde virão os próximos alunos e está perdendo mercado para as academias low-cost..." oninput="M.situacao.dor_principal=this.value">${M.situacao.dor_principal}</textarea></div>
+  <div class="fg"><div class="fl">Custo mensal estimado de não resolver essa dor (R$) <span class="fl-hint">opcional</span></div>
+  <input type="number" class="ti" placeholder="0" value="${M.situacao.custo_mes||''}" oninput="M.situacao.custo_mes=+this.value"></div>
+  <div class="fg"><div class="fl">💭 Custo de Oportunidade — nos próximos 24 meses, existe algo melhor que você poderia construir com esse mesmo tempo/energia? <span class="fl-hint">opcional, mas vale ouro</span></div>
+  <textarea class="ta" rows="2" placeholder="Ex: poderia escalar minha plataforma de IA que já tem tração, ou esse é mesmo o melhor uso do meu tempo agora..." oninput="M.situacao.custo_oportunidade=this.value"></textarea></div>
+  <div class="fg"><div class="fl">Esse modelo te acelera ou te atrasa?</div>
+  <div class="pills">${sp('situacao','acelera_ou_atrasa',[['acelera','🚀 Me acelera'],['neutro','➡️ Neutro'],['atrasa','🐌 Me atrasa']])}</div></div>`
+},
+{id:'mercado',name:'1. Mercado & Dor',icon:'🌍',
+ sub:'O mercado existe, cresce e tem dinheiro — e o quão forte é a dor? A IA pesquisa dados reais (notícias, concorrência, cenário econômico) e estima as duas notas juntas.',
+ html:()=>`
+  <div class="ai-assist-box">
+    <div class="ai-assist-top">
+      <div class="ai-assist-txt">🔍 A IA pesquisa <strong>concorrência, pressão de preço (ex: entrada de players low-cost), cenário econômico e tendências</strong> do segmento <strong>${M.situacao.segmento||'(defina o segmento na Situação)'}</strong>, e usa isso + a dor descrita para estimar as notas abaixo.</div>
+      <button class="ai-assist-btn" id="btn_mercado" onclick="aiMercado()">🔍 Pesquisar Mercado & Dor com IA</button>
+    </div>
+    <div class="ai-result" id="res_mercado">${renderMercadoResultHtml()}</div>
+  </div>
+  ${sl('mercado','tamanho','Quantos clientes potenciais existem?','Poucos','Mercado enorme')}
+  ${sl('mercado','tendencia','O mercado está crescendo ou encolhendo?','Encolhendo','Crescendo forte')}
+  ${sl('mercado','dinheiro','O mercado tem dinheiro disponível?','Sem dinheiro','Dinheiro sobrando')}
+  ${sl('mercado','resistencia','Resistência a Selic / concorrência / cenário econômico?','Muito vulnerável','Muito resistente')}
+  ${sl('mercado','necessidade','É necessidade real ou modinha?','Modinha passageira','Necessidade permanente')}
+  <div class="fg"><div class="fl">📈 Ciclo de Vida — em que fase este modelo/mercado está?</div>
+  <div class="pills">${sp('mercado','ciclo_vida',[['introducao','🌱 Introdução'],['crescimento','📈 Crescimento'],['maturidade','🟡 Maturidade'],['declinio','🔻 Declínio']])}</div>
+  <div class="multi-hint">Um modelo pode ser excelente hoje e ruim daqui a 3 anos — essa fase muda tudo</div></div>`
+},
+{id:'produto',name:'2. Produto',icon:'📦',
+ sub:'O que você está pensando em entregar? Defina o formato, quantos clientes/mês e por quanto tempo dura o programa.',
+ test:'🔁 Teste de escala: com 1.000 clientes, suas horas de trabalho aumentam ou ficam iguais?',
+ html:()=>`
+  <div class="fg"><div class="fl">O que você está pensando em entregar? <span class="fl-hint">ideia inicial, mesmo que crua</span></div>
+  <textarea class="ta" rows="3" placeholder="Ex: estou pensando em algo entre consultoria e plataforma, talvez um programa com acompanhamento + sistema de gestão..." oninput="M.produto.ideia_inicial=this.value">${M.produto.ideia_inicial}</textarea></div>
+  <div class="ai-assist-box">
+    <div class="ai-assist-top">
+      <div class="ai-assist-txt">💡 Com base na situação, mercado e dor, a IA sugere <strong>2-3 direções de produto/oferta</strong>.</div>
+      <button class="ai-assist-btn" id="btn_produto" onclick="aiProdutoSugestoes()">💡 Sugerir Direções com IA</button>
+    </div>
+    <div id="res_produto"></div>
+  </div>
+  ${M.produto.escolhida?`<div class="fg"><div class="fl">✅ Direção escolhida</div><div style="background:var(--accd);border:1px solid var(--accb);border-radius:8px;padding:12px;font-size:13px;color:var(--t1);font-weight:600">${M.produto.escolhida}</div></div>`:''}
+  <div class="fg"><div class="fl">Formato de entrega (vira o diagrama final) <span class="fl-hint">múltipla escolha</span></div>
+  <div class="pills">${mp('produto','formatos',[
+    ['treinamento_vendas','Treinamento de Vendas'],['papo_dono','Papo de Dono'],
+    ['entrega_individual','Entrega Individual'],['consultor','Consultor'],
+    ['plataforma','Plataforma'],['mentoria_grupo','Mentoria em Grupo'],
+    ['comunidade','Comunidade'],['conteudo_gravado','Conteúdo Gravado'],
+    ['ia_bot','IA / Bot'],['evento_presencial','Evento Presencial']
+  ])}</div></div>
+  <div class="frow" style="margin-bottom:18px">
+    <div class="fg"><div class="fl">Estimativa de clientes novos/mês</div>
+    <input type="number" class="ti" placeholder="0" value="${M.produto.estimativa_mes||''}" oninput="M.produto.estimativa_mes=+this.value;upd()"></div>
+    <div class="fg"><div class="fl">Duração do programa (meses)</div>
+    <input type="number" class="ti" placeholder="Ex: 6" value="${M.produto.duracao_meses||''}" oninput="M.produto.duracao_meses=+this.value;upd()"></div>
+  </div>
+  <div class="frow" style="margin-bottom:18px">
+    <div class="fg"><div class="fl">Horas/mês por cliente <span class="fl-hint">tempo total da equipe</span></div>
+    <input type="number" class="ti" placeholder="0" value="${M.produto.horas_cliente||''}" oninput="M.produto.horas_cliente=+this.value;upd()"></div>
+    <div class="fg"><div class="fl">Pessoas envolvidas na entrega</div>
+    <input type="number" class="ti" placeholder="1" value="${M.produto.pessoas||''}" oninput="M.produto.pessoas=+this.value;upd()"></div>
+  </div>
+  <div class="fg"><div class="fl">⏱️ Quantas horas/mês VOCÊ (fundador) dedica a este modelo?</div>
+  <input type="number" class="ti" placeholder="Ex: 40" value="${M.produto.horas_fundador||''}" oninput="M.produto.horas_fundador=+this.value;upd()"></div>
+  <div class="fg"><div class="fl">🔗 Se você sumir por 30 dias, o que acontece?</div>
+  <div class="pills">
+    <button class="pill${M.produto.fundador_sai===0?' on':''}" onclick="spickNum(this,'produto','fundador_sai',0)">🔴 Quebra tudo</button>
+    <button class="pill${M.produto.fundador_sai===5?' on':''}" onclick="spickNum(this,'produto','fundador_sai',5)">🟡 Cai mas sobrevive</button>
+    <button class="pill${M.produto.fundador_sai===10?' on':''}" onclick="spickNum(this,'produto','fundador_sai',10)">✅ Continua normalmente</button>
+  </div></div>
+  ${sl('produto','padronizacao','Padronização (entrega igual p/ todos)','100% sob medida','100% padronizado')}
+  ${sl('produto','suporte_baixo','Independência de suporte recorrente','Precisa muito suporte','Quase nenhum suporte')}
+  ${sl('produto','independencia','Independência de você no produto','Só você entrega','Qualquer um entrega')}`
+},
+{id:'oferta',name:'3. Oferta',icon:'🎯',
+ sub:'A transformação é clara? Teste: uma criança entenderia o que você vende?',
+ test:'🧒 Teste: uma criança entende a sua oferta em 1 frase?',
+ html:()=>`
+  ${M.situacao.contexto?`<div class="ctx-recall"><b>📋 Sua situação</b>${M.situacao.contexto.slice(0,160)}${M.situacao.contexto.length>160?'…':''}</div>`:''}
+  <div class="fg"><div class="fl">Nome da oferta</div>
+  <input class="ti" placeholder="Ex: Programa de Aceleração de Vendas..." oninput="M.oferta.nome=this.value" value="${M.oferta.nome}"></div>
+  <div class="fg"><div class="fl">Resultado prometido (em 1 frase simples)</div>
+  <input class="ti" placeholder="Ex: dobrar matrículas em 90 dias" oninput="M.oferta.resultado=this.value" value="${M.oferta.resultado}"></div>
+  ${sl('oferta','clareza','A promessa é simples e clara?','Confusa','Cristalina')}
+  ${sl('oferta','explicar','É fácil de explicar?','Complexa','Simples')}
+  ${sl('oferta','vender','É fácil de vender?','Difícil','Fácil')}
+  ${sl('oferta','indicar','É fácil de indicar para outras pessoas?','Difícil indicar','Viraliza sozinha')}`
+},
+{id:'sistema',name:'4. Sistema',icon:'⚙️',
+ sub:'O sistema vende e entrega sozinho? Essa foi a maior sacada do Conrado.',
+ test:'🚪 Pergunta principal: se eu sumir 30 dias, o sistema continua rodando?',
+ html:()=>`
+  ${sl('sistema','aquisicao','Leads entram de forma previsível?','Imprevisível','Totalmente previsível')}
+  ${sl('sistema','conversao','Existe processo de venda definido?','Cada venda é diferente','Processo replicável')}
+  ${sl('sistema','onboarding','O cliente entra sozinho (sem você)?','Você precisa estar presente','100% automático')}
+  ${sl('sistema','entrega_doc','A entrega está documentada/sistematizada?','Tudo na cabeça de alguém','Tudo documentado')}
+  ${sl('sistema','renovacao','O cliente permanece / renova?','Sai rápido','Fica e renova')}`
+},
+{id:'complexidade',name:'5. Complexidade',icon:'🧩',
+ sub:'Talvez a mais importante. O que acontece com 100, 500, 1.000 clientes? Se tudo explode, complexidade alta.',
+ test:'💥 O que muda na operação com 100 → 500 → 1.000 clientes?',
+ html:()=>`
+  <div class="ai-assist-box">
+    <div class="ai-assist-top">
+      <div class="ai-assist-txt">🤖 A IA estima a complexidade considerando <strong>tudo que você já respondeu</strong> (situação, mercado, produto, oferta, sistema).</div>
+      <button class="ai-assist-btn" id="btn_complex" onclick="aiComplexidade()">🤖 Estimar com IA</button>
+    </div>
+    <div class="ai-result" id="res_complex">${M.complexidade._resumo?`<b>🧩 Raciocínio</b><br>${M.complexidade._resumo}`:''}</div>
+  </div>
+  <div class="fg"><div class="fl">Quantas pessoas a operação vai precisar?</div>
+  <input type="number" class="ti" placeholder="Ex: 2" value="${M.complexidade.pessoas_necessarias||''}" oninput="M.complexidade.pessoas_necessarias=+this.value;upd()"></div>
+  ${sl('complexidade','comercial','Simplicidade comercial (esforço de venda)','Venda complexa/longa','Venda simples/rápida')}
+  ${sl('complexidade','entrega','Simplicidade de entrega','Esforço enorme por cliente','Esforço mínimo')}
+  ${sl('complexidade','gestao','Simplicidade de gestão (poucos problemas)','Gera muitos problemas','Roda sozinho')}
+  <div class="fg"><div class="fl">Com 1.000 clientes, o que acontece?</div>
+  <div class="pills">
+    <button class="pill${M.complexidade.escala_teste===10?' on':''}" onclick="spickNum(this,'complexidade','escala_teste',10)">✅ Quase nada muda</button>
+    <button class="pill${M.complexidade.escala_teste===5?' on':''}" onclick="spickNum(this,'complexidade','escala_teste',5)">🟡 Cresce proporcional</button>
+    <button class="pill${M.complexidade.escala_teste===0?' on':''}" onclick="spickNum(this,'complexidade','escala_teste',0)">🔴 Tudo trava/explode</button>
+  </div></div>
+  <div class="fg"><div class="fl">Descreva o que mudaria operacionalmente</div>
+  <textarea class="ta" rows="2" placeholder="Ex: precisaria contratar 10 pessoas para suporte..." oninput="M.complexidade.escala_explicacao=this.value">${M.complexidade.escala_explicacao}</textarea></div>`
+},
+{id:'margem',name:'6. Margem',icon:'💰',
+ sub:'Não é faturamento — é margem e geração de caixa (EBITDA), já descontando imposto. Defina o formato de cobrança e use a calculadora à direita.',
+ test:'❓ Cada novo cliente aumenta caixa ou aumenta trabalho?',
+ html:()=>`
+  <div style="background:var(--accd);border:1px solid rgba(242,200,17,.2);border-radius:9px;padding:16px;margin-bottom:20px">
+    <div style="font-size:13px;font-weight:700;color:var(--acc);margin-bottom:5px">👉 Preencha a Calculadora no painel direito →</div>
+    <p style="font-size:12px;color:var(--t2);line-height:1.6">Escolha o formato de cobrança (pagamento único ou mensalidade), informe ticket, CAC, custos e imposto. Lucro por cliente, margem, faturamento mensal e EBITDA aparecem em tempo real.</p>
+  </div>
+  <div class="fg"><div class="fl">Duração do programa <span class="fl-hint">definida no bloco Produto</span></div>
+  <div style="background:var(--surf);border:1px solid var(--bord);border-radius:8px;padding:11px 13px;font-size:13px;color:${M.produto.duracao_meses?'var(--t1)':'var(--t3)'}">${M.produto.duracao_meses?M.produto.duracao_meses+' meses':'Não definida — volte ao bloco Produto'}</div></div>
+  <div id="margem_prev">${margemPreview()}</div>`
+},
+{id:'capacidade',name:'7. Capacidade',icon:'📊',
+ sub:'Aqui mora a escala. Quantos clientes você suporta hoje, e o que acontece se dobrar?',
+ test:'⚖️ Com o dobro de clientes, o lucro dobra também?',
+ html:()=>`
+  <div class="frow" style="margin-bottom:20px">
+    <div class="fg"><div class="fl">Clientes que suporta hoje</div>
+    <input type="number" class="ti" placeholder="0" value="${M.capacidade.hoje||''}" oninput="M.capacidade.hoje=+this.value;upd()"></div>
+    <div class="fg"><div class="fl">Com a mesma estrutura, até quantos?</div>
+    <input type="number" class="ti" placeholder="0" value="${M.capacidade.mesma_estrutura||''}" oninput="M.capacidade.mesma_estrutura=+this.value;upd()"></div>
+  </div>
+  <div class="fg"><div class="fl">Se dobrar os clientes, o lucro dobra também?</div>
+  <div class="pills">
+    <button class="pill${M.capacidade.dobro_lucro===10?' on':''}" onclick="spickNum(this,'capacidade','dobro_lucro',10)">✅ Sim, dobra ou mais</button>
+    <button class="pill${M.capacidade.dobro_lucro===5?' on':''}" onclick="spickNum(this,'capacidade','dobro_lucro',5)">🟡 Dobra parcialmente</button>
+    <button class="pill${M.capacidade.dobro_lucro===0?' on':''}" onclick="spickNum(this,'capacidade','dobro_lucro',0)">🔴 Não, trava/some a margem</button>
+  </div></div>`
+}
+];
+
+// ═══════════ HELPERS ═══════════
+function sl(sec,field,label,lo,hi){
+  const v=M[sec][field];
+  return`<div class="fg"><div class="fl">${label}</div>
+  <div class="srow"><span class="slim">${lo}</span>
+  <input type="range" class="strack" min="0" max="10" value="${v}" oninput="M.${sec}.${field}=+this.value;this.parentElement.querySelector('.sval').textContent=this.value;upd()">
+  <span class="sval">${v}</span><span class="slim r">${hi}</span></div></div>`;
+}
+function mp(sec,field,opts){return opts.map(([v,l])=>`<button class="pill${M[sec][field].includes(v)?' on':''}" onclick="mpick(this,'${sec}','${field}','${v}')">${l}</button>`).join('')}
+function sp(sec,field,opts){return opts.map(([v,l])=>`<button class="pill${M[sec][field]===v?' on':''}" onclick="spick(this,'${sec}','${field}','${v}')">${l}</button>`).join('')}
+function mpick(el,sec,field,val){el.classList.toggle('on');const a=M[sec][field],i=a.indexOf(val);i===-1?a.push(val):a.splice(i,1);upd()}
+function spick(el,sec,field,val){el.closest('.pills').querySelectorAll('.pill').forEach(b=>b.classList.remove('on'));el.classList.add('on');M[sec][field]=val;upd()}
+function spickNum(el,sec,field,val){el.closest('.pills').querySelectorAll('.pill').forEach(b=>b.classList.remove('on'));el.classList.add('on');M[sec][field]=val;upd()}
+function fmt(n){return Math.abs(n||0).toLocaleString('pt-BR',{maximumFractionDigits:0})}
+function fmtR(n){return(n<0?'-R$ ':'R$ ')+fmt(Math.abs(n))}
+function roBar(lbl,val){return`<div class="robar-row"><span class="robar-lbl">${lbl}</span><div class="robar-track"><div class="robar-fill" style="width:${val*10}%"></div></div><span class="robar-val">${val}</span></div>`}
+function renderMercadoResultHtml(){
+  if(!M.mercado.resumo) return'';
+  return`<b>📊 Cenário de Mercado</b><br>${M.mercado.resumo}
+  <div style="margin-top:12px"><b>💊 Análise da Dor</b>${M.dor.resumo?'<br>'+M.dor.resumo:''}
+  ${roBar('Intensidade',M.dor.intensidade)}${roBar('Obsessão do cliente',M.dor.obsessao)}${roBar('Custo financeiro',M.dor.custo_financeiro)}${roBar('Custo de tempo',M.dor.custo_tempo)}${roBar('Peso emocional',M.dor.peso_emocional)}</div>`;
+}
+
+// ═══════════ FINANCIALS ═══════════
+function calcFin(){
+  const u=M.margem;
+  const ticket=u.ticket||0;
+  const comissaoVal=ticket*(u.comissao/100);
+  const impostoVal=ticket*(u.imposto/100);
+  const duracao=Math.max(M.produto.duracao_meses||0,0);
+  const novosMes=M.produto.estimativa_mes||0;
+  const clientesAtivos=M.capacidade.hoje||0;
+
+  let lucroPorCliente,faturamentoMensal,lucroMensal,ltv,clientesEmAtendimento;
+
+  if(u.cobranca==='mensalidade'){
+    lucroPorCliente = ticket - comissaoVal - u.custo_entrega - u.custo_operacao - impostoVal; // recorrente, CAC tratado à parte
+    faturamentoMensal = clientesAtivos*ticket;
+    const custosVariaveis = clientesAtivos*(comissaoVal+u.custo_entrega+u.custo_operacao+impostoVal);
+    const cacGastoMes = novosMes*u.cac;
+    lucroMensal = faturamentoMensal - custosVariaveis - cacGastoMes;
+    ltv = u.churn>0 ? lucroPorCliente/(u.churn/100) : 0;
+    clientesEmAtendimento = clientesAtivos;
+  } else { // unico
+    lucroPorCliente = ticket - u.cac - comissaoVal - u.custo_entrega - u.custo_operacao - impostoVal;
+    faturamentoMensal = novosMes*ticket;
+    lucroMensal = novosMes*lucroPorCliente;
+    ltv = ticket; // valor único recebido
+    clientesEmAtendimento = Math.round(novosMes*Math.max(duracao,1));
+  }
+  const margem = ticket>0 ? lucroPorCliente/ticket*100 : 0;
+  const ebitdaMensal = lucroMensal - u.custos_fixos;
+  const tempoMensalHoras = clientesEmAtendimento*(M.produto.horas_cliente||0);
+  const horasFundador = M.produto.horas_fundador||0;
+  const lucroPorHoraFundador = horasFundador>0 ? ebitdaMensal/horasFundador : 0;
+
+  return{lucro:lucroPorCliente,margem,ltv,faturamentoMensal,lucroMensal,ebitda:ebitdaMensal,clientesEmAtendimento,tempoMensalHoras,impostoVal,horasFundador,lucroPorHoraFundador};
+}
+
+// ═══════════ INVESTMENT SIMULATOR (6/12/24 meses) ═══════════
+function simulateHorizon(investimentoMensal,horizonMeses){
+  const u=M.margem;
+  const ticket=u.ticket||0;
+  const comissaoVal=ticket*(u.comissao/100);
+  const impostoVal=ticket*(u.imposto/100);
+  const lucroPorClienteUnico = ticket - u.cac - comissaoVal - u.custo_entrega - u.custo_operacao - impostoVal;
+  const lucroPorClienteRecorrente = ticket - comissaoVal - u.custo_entrega - u.custo_operacao - impostoVal;
+  const novosOrganico = M.produto.estimativa_mes||0;
+  const novosExtra = u.cac>0 ? investimentoMensal/u.cac : 0;
+  const novosTotalMes = novosOrganico+novosExtra;
+  const churnRate = (u.churn||0)/100;
+  const duracao = Math.max(M.produto.duracao_meses||1,1);
+
+  let faturamentoBruto=0,lucroLiquido=0,clientesFinal=0;
+  if(u.cobranca==='unico'){
+    for(let m=1;m<=horizonMeses;m++){
+      faturamentoBruto += novosTotalMes*ticket;
+      // o CAC (incluindo os clientes vindos do investimento) já está descontado em lucroPorClienteUnico — não subtrair o investimento de novo
+      lucroLiquido += novosTotalMes*lucroPorClienteUnico;
+    }
+    clientesFinal = Math.round(novosTotalMes*horizonMeses);
+  }else{
+    let active=M.capacidade.hoje||0;
+    for(let m=1;m<=horizonMeses;m++){
+      active = active*(1-churnRate)+novosTotalMes;
+      faturamentoBruto += active*ticket;
+      // aqui o CAC dos novos do mês é descontado à parte pois a margem recorrente não inclui CAC
+      lucroLiquido += active*lucroPorClienteRecorrente - novosTotalMes*u.cac;
+    }
+    clientesFinal = Math.round(active);
+  }
+  const custosFixosAcum = (u.custos_fixos||0)*horizonMeses;
+  const investimentoAcum = investimentoMensal*horizonMeses;
+  const lucroLiquidoFinal = lucroLiquido - custosFixosAcum; // já é o resultado líquido, custo de aquisição (incl. investimento extra) já embutido via CAC
+  const roi = investimentoAcum>0 ? (lucroLiquidoFinal/investimentoAcum*100) : null;
+  return{faturamentoBruto,lucroLiquido:lucroLiquidoFinal,investimentoAcum,novosTotalMes,clientesFinal,roi,horizonMeses};
+}
+function renderInvestSim(){
+  const box=document.getElementById('investSimCards');
+  if(!box)return;
+  if(!M.margem.ticket||!M.margem.cac){
+    box.innerHTML=`<div style="color:var(--t3);font-size:12px;padding:13px;background:var(--surf);border:1px solid var(--bord);border-radius:8px">Preencha Ticket e CAC na calculadora (Margem) para simular →</div>`;
+    return;
+  }
+  const horizons=[6,12,24];
+  box.innerHTML=horizons.map(h=>{
+    const r=simulateHorizon(M.investimento.valor_mensal||0,h);
+    return`<div class="proj-card" style="text-align:left;padding:14px">
+      <div class="proj-card-lbl" style="margin-bottom:8px">${h} meses</div>
+      <div style="font-size:10px;color:var(--t3);margin-bottom:2px">Clientes acumulados</div>
+      <div style="font:700 13px 'JetBrains Mono',monospace;color:var(--t1);margin-bottom:6px">${r.clientesFinal} ${M.margem.cobranca==='unico'?'(total no período)':'(ativos ao final)'}</div>
+      <div style="font-size:10px;color:var(--t3);margin-bottom:2px">Faturamento Bruto</div>
+      <div style="font:700 14px 'JetBrains Mono',monospace;color:var(--t1);margin-bottom:6px">${fmtR(r.faturamentoBruto)}</div>
+      <div style="font-size:10px;color:var(--t3);margin-bottom:2px">Lucro Líquido <span style="color:var(--t3)">(já descontado CAC, comissão, custos, imposto e custos fixos)</span></div>
+      <div style="font:700 14px 'JetBrains Mono',monospace;color:${r.lucroLiquido>0?'var(--grn)':'var(--red)'};margin-bottom:6px">${fmtR(r.lucroLiquido)}</div>
+      <div style="font-size:10px;color:var(--t3);margin-bottom:2px">Investido em aquisição extra</div>
+      <div style="font:700 12px 'JetBrains Mono',monospace;color:var(--org);margin-bottom:6px">${fmtR(r.investimentoAcum)}${r.roi!==null?` <span style="color:var(--t3);font-weight:400">· ROI ${r.roi.toFixed(0)}%</span>`:''}</div>
+      <div style="font-size:10px;color:var(--t3)">~${r.novosTotalMes.toFixed(1)} clientes novos/mês (taxa)</div>
+    </div>`;
+  }).join('');
+}
+function setCobranca(tipo){
+  M.margem.cobranca=tipo;
+  document.getElementById('cobra_unico').classList.toggle('on',tipo==='unico');
+  document.getElementById('cobra_mensal').classList.toggle('on',tipo==='mensalidade');
+  document.getElementById('lbl_ticket').textContent=tipo==='unico'?'💰 Valor único (R$)':'💰 Mensalidade (R$/mês)';
+  document.getElementById('row_churn').style.display=tipo==='mensalidade'?'flex':'none';
+  refreshFin();upd();
+}
+function setF(field,val){M.margem[field]=val;refreshFin();upd()}
+function refreshFin(){
+  const{lucro,margem,faturamentoMensal,ebitda}=calcFin();
+  const rr=document.getElementById('rres'),rv=document.getElementById('rval'),rm=document.getElementById('rmarg'),rf=document.getElementById('rfat'),re=document.getElementById('rebitda'),rn=document.getElementById('rnota');
+  if(!rr)return;
+  rv.textContent=M.margem.ticket>0?fmtR(lucro):'—';
+  rr.className='fres '+(lucro>0?'pos':lucro<0?'neg':'neu');
+  rm.textContent=M.margem.ticket>0?margem.toFixed(1)+'%':'—';
+  rm.style.color=margem>40?'var(--grn)':margem>20?'var(--org)':margem>0?'var(--red)':'#FCA5A5';
+  rf.textContent=M.margem.ticket>0?fmtR(faturamentoMensal):'—';
+  re.textContent=M.margem.ticket>0?fmtR(ebitda):'—';
+  rn.textContent=lucro<0?'⚠️ Prejuízo!':margem>50?'✅ Excelente':margem>30?'🟡 Razoável':'';
+  const mp2=document.getElementById('margem_prev');if(mp2)mp2.innerHTML=margemPreview();
+}
+function margemPreview(){
+  const{lucro,margem,faturamentoMensal,lucroMensal,ebitda,impostoVal}=calcFin();
+  if(!M.margem.ticket)return`<div style="color:var(--t3);font-size:12px;padding:13px;background:var(--surf);border:1px solid var(--bord);border-radius:8px">Preencha a calculadora no painel direito →</div>`;
+  const lc=lucro>0?'var(--grn)':'var(--red)',mc=margem>30?'var(--grn)':margem>10?'var(--org)':'var(--red)';
+  const ec=ebitda>0?'var(--grn)':'var(--red)';
+  return`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    ${[['Lucro/Cliente',fmtR(lucro),lc],['Margem',margem.toFixed(1)+'%',mc],['Faturamento/mês',fmtR(faturamentoMensal),'var(--t1)'],['EBITDA/mês',fmtR(ebitda),ec]].map(([l,v,c])=>`
+    <div style="background:var(--surf);border:1px solid var(--bord);border-radius:8px;padding:12px">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--t3);margin-bottom:4px">${l}</div>
+      <div style="font-size:16px;font-weight:800;color:${c};font-family:'JetBrains Mono',monospace">${v}</div>
+    </div>`).join('')}
+  </div>
+  <div style="margin-top:10px;font-size:11px;color:var(--t3)">Imposto (${M.margem.imposto}%) descontado por cliente: ${fmtR(impostoVal)} · Formato: ${M.margem.cobranca==='unico'?'Pagamento Único':'Mensalidade Recorrente'}</div>`;
+}
+
+// ═══════════ SCORING ═══════════
+function scoreFromPessoas(n){
+  if(!n||n<=0)return 5;
+  if(n<=2)return 10; if(n<=4)return 7; if(n<=7)return 4; if(n<=12)return 2; return 0;
+}
+const SCORE_BLOCKS=[
+  {id:'mercado',name:'Mercado',icon:'🌍',auto:false,fn:()=>avg([M.mercado.tamanho,M.mercado.tendencia,M.mercado.dinheiro,M.mercado.resistencia,M.mercado.necessidade,cicloVidaScore()])},
+  {id:'dor',name:'Dor',icon:'💊',auto:false,fn:()=>avg([M.dor.intensidade,M.dor.obsessao,M.dor.custo_financeiro,M.dor.custo_tempo,M.dor.peso_emocional])},
+  {id:'oferta',name:'Oferta',icon:'🎯',auto:false,fn:()=>avg([M.oferta.clareza,M.oferta.explicar,M.oferta.vender,M.oferta.indicar])},
+  {id:'produto',name:'Produto',icon:'📦',auto:false,fn:()=>avg([M.produto.padronizacao,M.produto.suporte_baixo,M.produto.independencia])},
+  {id:'sistema',name:'Sistema',icon:'⚙️',auto:false,fn:()=>avg([M.sistema.aquisicao,M.sistema.conversao,M.sistema.onboarding,M.sistema.entrega_doc,M.sistema.renovacao])},
+  {id:'complexidade',name:'Complexidade',icon:'🧩',auto:false,fn:()=>avg([scoreFromPessoas(M.complexidade.pessoas_necessarias),M.complexidade.comercial,M.complexidade.entrega,M.complexidade.gestao,M.complexidade.escala_teste])},
+  {id:'margem',name:'Margem',icon:'💰',auto:false,fn:()=>{const{margem}=calcFin();if(!M.margem.ticket)return-1;return margem>55?10:margem>40?8:margem>30?6:margem>20?4:margem>10?2:margem>0?1:0;}},
+  {id:'dependencia',name:'Dependência',icon:'🔗',auto:true,fn:()=>avg([M.produto.independencia,M.produto.fundador_sai,M.produto.fundador_sai,M.sistema.onboarding,M.sistema.entrega_doc])},
+  {id:'capacidade',name:'Capacidade',icon:'📊',auto:false,fn:()=>{if(!M.capacidade.mesma_estrutura)return-1;return M.capacidade.dobro_lucro;}},
+  {id:'alavanca',name:'Alavanca',icon:'⚡',auto:true,fn:()=>avg([M.produto.padronizacao,M.complexidade.entrega,M.complexidade.comercial,M.sistema.aquisicao])}
+];
+function cicloVidaScore(){
+  const map={introducao:7,crescimento:10,maturidade:5,declinio:0};
+  return M.mercado.ciclo_vida?map[M.mercado.ciclo_vida]:5;
+}
+function avg(arr){return arr.reduce((a,c)=>a+c,0)/arr.length}
+function blockScoreById(id){const b=SCORE_BLOCKS.find(x=>x.id===id);return b?b.fn():-1}
+function scol(s){return s>=7?'g':s>=4?'y':'r'}
+function overall(){
+  let t=0,n=0;
+  SCORE_BLOCKS.forEach(b=>{const s=b.fn();if(s>=0){t+=s;n++}});
+  return n>0?Math.round(t/n*10):-1;
+}
+
+// ═══════════ RENDER ═══════════
+function renderStepper(){
+  document.getElementById('stepper').innerHTML=PAGES.map((p,i)=>{
+    let s=-1,cl='n';
+    const sb=SCORE_BLOCKS.find(b=>p.name.toLowerCase().includes(b.id)||b.id===p.id);
+    if(sb){s=sb.fn();cl=s<0?'n':scol(s)}
+    return`<div class="sitem${i===CUR?' active':''}" onclick="go(${i})">
+      <div class="sinner"><div class="snum">${i+1}</div>
+      <div class="sname">${p.icon} ${p.name.replace(/^\d+\.\s*/,'')}</div>
+      <div class="sscore ${cl}">${s<0?'':s.toFixed(1)}</div></div></div>`;
+  }).join('')
+  +`<div class="sfoot"><button class="genbtn" onclick="toOutput()">Ver Modelo ↓</button></div>`
+  +`<div class="sauto-note">🔗 Dependência e ⚡ Alavanca são calculados automaticamente com base nas suas respostas — aparecem no resultado final.</div>`;
+}
+function renderForm(){
+  const p=PAGES[CUR];
+  document.getElementById('farea').innerHTML=`
+    <div class="eyebrow">Etapa ${CUR+1} de ${PAGES.length}</div>
+    <div class="bhead">${p.icon} ${p.name}</div>
+    <div class="bsub">${p.sub}</div>
+    ${p.test?`<div class="btest">${p.test}</div>`:'<div style="margin-bottom:6px"></div>'}
+    ${p.html()}
+    <div class="fnav">
+      <button class="nbtn nprev" onclick="go(${CUR-1})" ${CUR===0?'disabled':''}>← Anterior</button>
+      <span style="font-size:11px;color:var(--t3)">${CUR+1} / ${PAGES.length}</span>
+      <button class="nbtn nnext" onclick="go(${CUR+1})">${CUR===PAGES.length-1?'Ver Modelo ↓':'Próximo →'}</button>
+    </div>`;
+  document.getElementById('farea').scrollTop=0;
+  document.getElementById('hstep').innerHTML=`Etapa <span>${CUR+1}</span> de ${PAGES.length}`;
+  if(p.id==='margem'){
+    document.getElementById('cobra_unico')?.classList.toggle('on',M.margem.cobranca==='unico');
+    document.getElementById('cobra_mensal')?.classList.toggle('on',M.margem.cobranca==='mensalidade');
+  }
+}
+function renderScorelist(){
+  document.getElementById('scorelist').innerHTML=SCORE_BLOCKS.map(b=>{
+    const s=b.fn(),cl=s<0?'':scol(s),pct=s<0?0:s*10;
+    return`<div class="scrow"><span class="scname">${b.name}${b.auto?'<span class="scauto"> auto</span>':''}</span>
+    <div class="scbar"><div class="scfill ${cl}" style="width:${pct}%"></div></div>
+    <span class="scval" style="color:${s<0?'var(--t3)':cl==='g'?'var(--grn)':cl==='y'?'var(--org)':'var(--red)'}">${s<0?'—':s.toFixed(1)}</span></div>`;
+  }).join('');
+}
+function renderHeaderScore(){
+  const o=overall();
+  document.getElementById('hscoreVal').textContent=o<0?'—':o;
+  let filled=0;
+  SCORE_BLOCKS.forEach(b=>{if(b.fn()>=0)filled++});
+  document.getElementById('hprog').style.width=(filled/SCORE_BLOCKS.length*100)+'%';
+}
+
+// ═══════════ DIAGRAM ═══════════
+function renderDiagramSection(){
+  const formatos=M.produto.formatos;
+  const dgrid=document.getElementById('diagram');
+  if(!dgrid)return;
+  let cellsHtml;
+  if(formatos.length===0){
+    cellsHtml=`<div class="dcell empty span2">Selecione os formatos de entrega no bloco Produto →</div>`;
+  }else{
+    cellsHtml=formatos.map((f,i)=>{
+      const isLast=i===formatos.length-1;
+      const span=(formatos.length%2!==0&&isLast)?' span2':'';
+      return`<div class="dcell${span}">${FORMAT_LABELS[f]||f}</div>`;
+    }).join('');
+  }
+  const gridClass=formatos.length===1?'dgrid cols1':'dgrid';
+  document.getElementById('diagram').innerHTML=`
+    <div class="dprod-box">PRODUTO</div>
+    <div class="darrow"></div>
+    <div class="${gridClass}">${cellsHtml}</div>`;
+
+  const{lucro,margem,faturamentoMensal,ebitda,tempoMensalHoras,lucroPorHoraFundador,horasFundador}=calcFin();
+  const o=overall();
+  const ocol=o<0?'':o>=70?'g':o>=40?'y':'r';
+  const compScore=blockScoreById('complexidade');
+  const depScore=blockScoreById('dependencia');
+  const capScore=blockScoreById('capacidade');
+  const alavScore=blockScoreById('alavanca');
+  let verdictHtml='';
+  if(o>=0){
+    const isBadSignal = o<35 || (margem>0 && margem<10 && compScore>=0 && compScore<4) || (horasFundador>0 && lucroPorHoraFundador<50 && lucroPorHoraFundador>=0);
+    if(isBadSignal){
+      verdictHtml=`<div class="dinfo-verdict r">🛑 Sinal de alerta — considere desistir ou migrar</div>`;
+    }else{
+      verdictHtml=`<div class="dinfo-verdict ${ocol}">${o>=70?'✅ Modelo escalável':o>=40?'🟡 Modelo precisa ajustes':'🔴 Modelo arriscado'}</div>`;
+    }
+  }
+  document.getElementById('dinfo').innerHTML=`
+    <div class="dinfo-title">Informações do Modelo</div>
+    <div class="dinfo-row"><span class="dinfo-lbl">Score Geral</span><span class="dinfo-val ${ocol}">${o<0?'—':o+'/100'}</span></div>
+    <div class="dinfo-row"><span class="dinfo-lbl">Formato cobrança</span><span class="dinfo-val" style="font-size:11px">${M.margem.cobranca==='unico'?'Único':'Mensal'}</span></div>
+    <div class="dinfo-row"><span class="dinfo-lbl">Ticket</span><span class="dinfo-val">${M.margem.ticket?fmtR(M.margem.ticket):'—'}</span></div>
+    <div class="dinfo-row"><span class="dinfo-lbl">Lucro/Cliente</span><span class="dinfo-val ${lucro>0?'g':lucro<0?'r':''}">${M.margem.ticket?fmtR(lucro):'—'}</span></div>
+    <div class="dinfo-row"><span class="dinfo-lbl">Margem</span><span class="dinfo-val ${margem>40?'g':margem>20?'y':'r'}">${M.margem.ticket?margem.toFixed(1)+'%':'—'}</span></div>
+    <div class="dinfo-sep"></div>
+    <div class="dinfo-row"><span class="dinfo-lbl">Faturamento/mês</span><span class="dinfo-val">${M.margem.ticket?fmtR(faturamentoMensal):'—'}</span></div>
+    <div class="dinfo-row"><span class="dinfo-lbl">EBITDA/mês</span><span class="dinfo-val ${ebitda>0?'g':'r'}">${M.margem.ticket?fmtR(ebitda):'—'}</span></div>
+    <div class="dinfo-row"><span class="dinfo-lbl">Tempo alocado/mês</span><span class="dinfo-val">${tempoMensalHoras?tempoMensalHoras+'h':'—'}</span></div>
+    <div class="dinfo-sep"></div>
+    <div class="dinfo-row"><span class="dinfo-lbl">Complexidade</span><span class="dinfo-val ${compScore<0?'':scol(compScore)}">${compScore<0?'—':compScore.toFixed(1)+'/10'}</span></div>
+    <div class="dinfo-row"><span class="dinfo-lbl">Dependência<span style="color:var(--blu)"> auto</span></span><span class="dinfo-val ${scol(depScore)}">${depScore.toFixed(1)+'/10'}</span></div>
+    <div class="dinfo-row"><span class="dinfo-lbl">Capacidade</span><span class="dinfo-val ${capScore<0?'':scol(capScore)}">${capScore<0?'—':capScore.toFixed(1)+'/10'}</span></div>
+    <div class="dinfo-row"><span class="dinfo-lbl">Alavanca<span style="color:var(--blu)"> auto</span></span><span class="dinfo-val ${scol(alavScore)}">${alavScore.toFixed(1)+'/10'}</span></div>
+    ${verdictHtml}`;
+}
+function renderScoreGrid(){
+  document.getElementById('scoreGrid').innerHTML=SCORE_BLOCKS.map(b=>{
+    const s=b.fn(),cl=s<0?'':scol(s);
+    return`<div class="score-card">${b.auto?'<span class="score-card-auto">auto</span>':''}<div class="score-card-icon">${b.icon}</div><div class="score-card-lbl">${b.name}</div><div class="score-card-val ${cl}">${s<0?'—':s.toFixed(1)}</div></div>`;
+  }).join('');
+}
+
+const LIFECYCLE_LABELS={introducao:{icon:'🌱',label:'Introdução',text:'Mercado nascente — boa hora pra entrar, mas adoção ainda é incerta.'},crescimento:{icon:'📈',label:'Crescimento',text:'Melhor fase pra construir — demanda crescente, espaço pra ganhar mercado.'},maturidade:{icon:'🟡',label:'Maturidade',text:'Mercado estabilizado — crescer exige tirar cliente do concorrente.'},declinio:{icon:'🔻',label:'Declínio',text:'Atenção: mercado encolhendo. Modelo bom hoje pode não sustentar em 2-3 anos.'}};
+function renderEffortRow(){
+  const box=document.getElementById('effortRow');
+  if(!box)return;
+  const{ebitda,horasFundador,lucroPorHoraFundador}=calcFin();
+  const pessoas=M.complexidade.pessoas_necessarias||0;
+  const maxIcons=8;
+  const iconsHtml=Array.from({length:Math.min(pessoas,maxIcons)}).map(()=>'<span class="team-icon">👤</span>').join('')
+    + (pessoas>maxIcons?`<span class="team-more">+${pessoas-maxIcons}</span>`:'');
+
+  const lh=lucroPorHoraFundador;
+  const lhCol=lh>=300?'var(--grn)':lh>=100?'var(--org)':lh>0?'var(--red)':'var(--t3)';
+
+  const lc=M.mercado.ciclo_vida?LIFECYCLE_LABELS[M.mercado.ciclo_vida]:null;
+
+  box.innerHTML=`
+    <div class="effort-card">
+      <div class="effort-card-title">👥 Time Necessário</div>
+      <div class="team-icons">${pessoas>0?iconsHtml:'<span style="color:var(--t3);font-size:12px">Defina no bloco Complexidade →</span>'}</div>
+      <div class="effort-big" style="color:var(--t1)">${pessoas||'—'} ${pessoas===1?'pessoa':'pessoas'}</div>
+      <div class="effort-sub">Estimativa para operar na capacidade plena</div>
+    </div>
+    <div class="effort-card">
+      <div class="effort-card-title">⏱️ Lucro por Hora do Fundador</div>
+      <div class="effort-big" style="color:${lhCol}">${horasFundador>0?fmtR(lh)+'/h':'—'}</div>
+      <div class="effort-sub">${horasFundador>0?horasFundador+'h/mês dedicadas · EBITDA '+fmtR(ebitda)+'/mês':'Informe suas horas no bloco Produto →'}</div>
+    </div>
+    <div class="effort-card">
+      <div class="effort-card-title">📈 Ciclo de Vida</div>
+      ${lc?`<div class="lifecycle-badge ${M.mercado.ciclo_vida}">${lc.icon} ${lc.label}</div><div class="effort-sub">${lc.text}</div>`:'<div style="color:var(--t3);font-size:12px">Defina no bloco Mercado →</div>'}
+    </div>`;
+}
+
+function go(i){if(i<0)return;if(i>=PAGES.length){toOutput();return}CUR=i;renderStepper();renderForm()}
+function toOutput(){document.getElementById('outputSec').scrollIntoView({behavior:'smooth'})}
+function upd(){renderStepper();renderScorelist();renderHeaderScore();renderDiagramSection();renderScoreGrid();renderEffortRow();renderInvestSim();refreshFin()}
+
+// ═══════════ AI: MERCADO + DOR (web search) ═══════════
+async function aiMercado(){
+  const btn=document.getElementById('btn_mercado');
+  btn.disabled=true;btn.innerHTML='⏳ Pesquisando...';
+  const res=document.getElementById('res_mercado');
+  res.classList.add('show');res.innerHTML='<div class="ai-mini-dots"><span></span><span></span><span></span></div>';
+  const prompt=`Você é um analista de mercado. Pesquise na web dados REAIS e ATUAIS sobre o segmento abaixo no Brasil e responda SOMENTE com JSON (sem markdown):
+
+${ctxBlock()}
+
+Pesquise profundamente:
+- Tamanho e tendência do mercado (crescendo/encolhendo, número de negócios no segmento)
+- Cenário econômico: impacto da Selic, inflação, poder de compra do público-alvo
+- CONCORRÊNCIA: especialmente entrada de modelos de baixo custo / low-cost que pressionam preço e podem estar quebrando negócios estabelecidos nesse segmento (pesquise notícias recentes sobre isso)
+- Taxa de mortalidade/fechamento de negócios similares
+- Se a dor descrita é uma necessidade permanente ou uma moda passageira
+
+Depois, com base nessa pesquisa e na dor descrita pelo usuário, estime também a intensidade da dor.
+
+Responda com este JSON exato (notas 0-10, onde 10 é sempre o cenário mais favorável):
+{"tamanho":0,"tendencia":0,"dinheiro":0,"resistencia":0,"necessidade":0,"resumo":"resumo de 3-5 frases citando dados/tendências encontradas, mencionando explicitamente a pressão competitiva (ex: low-cost) se relevante, em português, sem citar fontes literalmente",
+"dor":{"intensidade":0,"obsessao":0,"custo_financeiro":0,"custo_tempo":0,"peso_emocional":0,"resumo":"2-3 frases explicando por que essas notas, relacionando com o cenário de mercado pesquisado"}}`;
+  try{
+    const d=await callClaudeJSON(prompt,true,2800);
+    M.mercado.tamanho=d.tamanho??5;M.mercado.tendencia=d.tendencia??5;M.mercado.dinheiro=d.dinheiro??5;
+    M.mercado.resistencia=d.resistencia??5;M.mercado.necessidade=d.necessidade??5;M.mercado.resumo=d.resumo||'';
+    if(d.dor){
+      M.dor.intensidade=d.dor.intensidade??5;M.dor.obsessao=d.dor.obsessao??5;M.dor.custo_financeiro=d.dor.custo_financeiro??5;
+      M.dor.custo_tempo=d.dor.custo_tempo??5;M.dor.peso_emocional=d.dor.peso_emocional??5;M.dor.resumo=d.dor.resumo||'';
+    }
+    res.innerHTML=renderMercadoResultHtml();
+    renderForm();upd();
+  }catch(e){res.innerHTML=`<span style="color:var(--red)">❌ Erro: ${e.message}</span>`}
+  btn.disabled=false;btn.innerHTML='🔍 Pesquisar Mercado & Dor com IA';
+}
+
+// ═══════════ AI: PRODUTO/DIREÇÃO ═══════════
+async function aiProdutoSugestoes(){
+  const btn=document.getElementById('btn_produto');
+  btn.disabled=true;btn.innerHTML='⏳ Pensando...';
+  const res=document.getElementById('res_produto');
+  res.innerHTML='<div class="ai-mini-dots"><span></span><span></span><span></span></div>';
+  const formatosList=Object.entries(FORMAT_LABELS).map(([k,v])=>`${k}=${v}`).join(', ');
+  const prompt=`Você é um arquiteto de negócios. Com base no contexto, sugira 2 a 3 direções de oferta distintas, partindo do PRODUTO (formato de entrega), seguindo o princípio "dinheiro é um jogo de cálculo, complexidade e produto" — priorize formatos SIMPLES de escalar. Responda SOMENTE com JSON (sem markdown):
+
+${ctxBlock()}
+MERCADO: "${M.mercado.resumo||'N/I'}"
+IDEIA INICIAL DO USUÁRIO: "${M.produto.ideia_inicial||'Não informada'}"
+
+Formatos de entrega disponíveis (use a chave exata em "formato_chave"): ${formatosList}
+
+Responda com este JSON exato:
+{"sugestoes":[{"nome":"nome curto da oferta","resultado":"resultado prometido em 1 frase simples","formato_chave":"uma das chaves acima","por_que":"por que essa direção é simples de escalar e gera margem boa, 1-2 frases"}]}`;
+  try{
+    const d=await callClaudeJSON(prompt,false);
+    M.produto.sugestoes=d.sugestoes||[];
+    res.innerHTML=`<div class="dir-cards">${M.produto.sugestoes.map((s,i)=>`
+      <div class="dir-card" onclick="chooseProdutoSugestao(${i})">
+        <div class="dir-card-title">${s.nome}</div>
+        <div class="dir-card-result">→ ${s.resultado}</div>
+        <div class="dir-card-why">${s.por_que}</div>
+        <div class="dir-card-tag">${FORMAT_LABELS[s.formato_chave]||s.formato_chave}</div>
+      </div>`).join('')}</div>`;
+  }catch(e){res.innerHTML=`<span style="color:var(--red);font-size:12px">❌ Erro: ${e.message}</span>`}
+  btn.disabled=false;btn.innerHTML='💡 Sugerir Direções com IA';
+}
+function chooseProdutoSugestao(i){
+  const s=M.produto.sugestoes[i];
+  if(!s)return;
+  M.produto.escolhida=s.nome+' — '+s.resultado;
+  M.oferta.nome=s.nome;
+  M.oferta.resultado=s.resultado;
+  if(s.formato_chave&&FORMAT_LABELS[s.formato_chave]&&!M.produto.formatos.includes(s.formato_chave)){
+    M.produto.formatos.push(s.formato_chave);
+  }
+  document.querySelectorAll('.dir-card').forEach((c,idx)=>c.classList.toggle('chosen',idx===i));
+  renderForm();upd();
+}
+
+// ═══════════ AI: COMPLEXIDADE ═══════════
+async function aiComplexidade(){
+  const btn=document.getElementById('btn_complex');
+  btn.disabled=true;btn.innerHTML='⏳ Calculando...';
+  const res=document.getElementById('res_complex');
+  res.classList.add('show');res.innerHTML='<div class="ai-mini-dots"><span></span><span></span><span></span></div>';
+  const prompt=`Você é um estrategista de negócios. Com base em TUDO que o usuário já respondeu, estime a complexidade operacional deste modelo. Responda SOMENTE com JSON (sem markdown):
+
+${ctxBlock()}
+MERCADO: "${M.mercado.resumo||'N/I'}"
+DIREÇÃO DE PRODUTO: "${M.produto.escolhida||M.produto.ideia_inicial||'N/I'}"
+FORMATOS DE ENTREGA: ${M.produto.formatos.map(f=>FORMAT_LABELS[f]).join(', ')||'N/I'}
+HORAS/CLIENTE/MÊS: ${M.produto.horas_cliente} | PESSOAS NA ENTREGA (informado no Produto): ${M.produto.pessoas}
+ESTIMATIVA CLIENTES/MÊS: ${M.produto.estimativa_mes} | DURAÇÃO PROGRAMA: ${M.produto.duracao_meses} meses
+OFERTA: "${M.oferta.nome||'N/I'}" — ${M.oferta.resultado||'N/I'}
+SISTEMA: aquisição=${M.sistema.aquisicao}/10, onboarding=${M.sistema.onboarding}/10, entrega documentada=${M.sistema.entrega_doc}/10
+
+Responda com este JSON exato:
+{"pessoas_necessarias":0,"comercial":0,"entrega":0,"gestao":0,"escala_teste":0,"escala_explicacao":"o que mudaria operacionalmente com 100, 500 e 1000 clientes, 2-3 frases","resumo":"raciocínio de 2-3 frases por trás dessas notas"}
+
+Notas comercial/entrega/gestao/escala_teste de 0-10 (10=mais simples/favorável). pessoas_necessarias é um número inteiro estimado de quantas pessoas a operação vai exigir na capacidade plena.`;
+  try{
+    const d=await callClaudeJSON(prompt,false);
+    M.complexidade.pessoas_necessarias=d.pessoas_necessarias??M.complexidade.pessoas_necessarias;
+    M.complexidade.comercial=d.comercial??5;M.complexidade.entrega=d.entrega??5;M.complexidade.gestao=d.gestao??5;
+    M.complexidade.escala_teste=d.escala_teste??5;M.complexidade.escala_explicacao=d.escala_explicacao||M.complexidade.escala_explicacao;
+    M.complexidade._resumo=d.resumo||'';
+    res.innerHTML=`<b>🧩 Raciocínio</b><br>${d.resumo||''}`;
+    renderForm();upd();
+  }catch(e){res.innerHTML=`<span style="color:var(--red)">❌ Erro: ${e.message}</span>`}
+  btn.disabled=false;btn.innerHTML='🤖 Estimar com IA';
+}
+
+// ═══════════ AI: FINAL ANALYSIS ═══════════
+async function generateAnalysis(){
+  const btn=document.getElementById('aibtn');
+  btn.disabled=true;btn.textContent='⏳ Analisando...';
+  document.getElementById('aibody').innerHTML='<div class="dots"><span></span><span></span><span></span></div>';
+  const{lucro,margem,faturamentoMensal,lucroMensal,ebitda,tempoMensalHoras,horasFundador,lucroPorHoraFundador}=calcFin(),o=overall();
+  const scores=SCORE_BLOCKS.map(b=>`${b.name}${b.auto?'(auto)':''}: ${b.fn()<0?'N/I':b.fn().toFixed(1)}/10`).join(' | ');
+  const lc=LIFECYCLE_LABELS[M.mercado.ciclo_vida];
+
+  const prompt=`Você é um arquiteto de negócios que formata modelos exatamente como Flávio Augusto e Conrado Adolpho fariam: modelo SIMPLES, PRÁTICO e ESCALÁVEL, que não trava na entrega, na margem ou na aquisição. O princípio central é: "Dinheiro é um jogo de cálculo, complexidade e produto."
+
+${ctxBlock()}
+CUSTO DE OPORTUNIDADE — o que mais o usuário poderia construir: "${M.situacao.custo_oportunidade||'N/I'}"
+ESSE MODELO ACELERA OU ATRASA O USUÁRIO (percepção dele): ${M.situacao.acelera_ou_atrasa||'N/I'}
+
+DADOS DO MODELO:
+NEGÓCIO: ${M.nome||'Não informado'}
+SCORE GERAL: ${o}/100
+NOTAS POR BLOCO: ${scores}
+CICLO DE VIDA DO MERCADO/PRODUTO: ${lc?lc.label:'N/I'}
+RESUMO MERCADO: "${M.mercado.resumo||'N/I'}"
+OFERTA: "${M.oferta.nome||'N/I'}" — resultado="${M.oferta.resultado||'N/I'}"
+PRODUTO: formatos=${M.produto.formatos.map(f=>FORMAT_LABELS[f]).join(', ')||'N/I'}, duração=${M.produto.duracao_meses} meses, novos clientes/mês=${M.produto.estimativa_mes}
+SE O FUNDADOR SUMIR 30 DIAS: nota ${M.produto.fundador_sai}/10 (0=quebra tudo, 10=continua normal)
+SISTEMA: aquisição=${M.sistema.aquisicao}/10, onboarding=${M.sistema.onboarding}/10, renovação=${M.sistema.renovacao}/10
+COMPLEXIDADE: pessoas necessárias=${M.complexidade.pessoas_necessarias}, comercial=${M.complexidade.comercial}/10, entrega=${M.complexidade.entrega}/10, teste 1000 clientes="${M.complexidade.escala_explicacao||'N/I'}"
+MARGEM: formato=${M.margem.cobranca==='unico'?'Pagamento Único':'Mensalidade'}, ticket=R$${M.margem.ticket}, imposto=${M.margem.imposto}%, lucro/cliente=R$${lucro.toFixed(0)}, margem=${margem.toFixed(1)}%
+FATURAMENTO MENSAL ESTIMADO: R$${faturamentoMensal.toFixed(0)}
+LUCRO/EBITDA MENSAL ESTIMADO (geração de caixa): R$${ebitda.toFixed(0)}
+TEMPO ALOCADO POR MÊS (equipe): ${tempoMensalHoras.toFixed(0)} horas
+HORAS DO FUNDADOR/MÊS: ${horasFundador} | LUCRO POR HORA DO FUNDADOR: R$${lucroPorHoraFundador.toFixed(0)}/h
+CAPACIDADE: hoje=${M.capacidade.hoje} clientes, dobro_lucro_dobra=${M.capacidade.dobro_lucro}/10
+DEPENDÊNCIA (calculada automaticamente): ${blockScoreById('dependencia').toFixed(1)}/10
+ALAVANCA (calculada automaticamente): ${blockScoreById('alavanca').toFixed(1)}/10
+
+Responda SOMENTE com este JSON exato (sem markdown):
+{
+  "veredicto": "Excelente|Bom|Médio|Fraco",
+  "recomendacao_final": "continuar_ajustar|migrar|desistir",
+  "recomendacao_motivo": "1-2 frases diretas explicando a recomendação — se for migrar ou desistir, seja honesto e explique exatamente por que o esforço não compensa o retorno, considerando o lucro por hora do fundador e o custo de oportunidade informado",
+  "modelo_formatado": "Descreva o modelo de negócio formatado de forma simples e prática, no estilo Flávio Augusto/Conrado Adolpho: quem é o cliente, qual a dor, qual a oferta, como entrega, como cobra, como adquire — tudo em um parágrafo direto e claro, como se fosse para alguém replicar o modelo amanhã",
+  "diagnostico_bom_ou_ruim": "Resposta direta: o modelo é BOM ou RUIM, e por quê — considerando se trava na entrega, na margem ou na aquisição",
+  "alerta_ciclo_vida": "Se o ciclo de vida for Maturidade ou Declínio, alerte explicitamente que o modelo pode não sustentar nos próximos anos mesmo que os números de hoje sejam bons. Se for Introdução/Crescimento, omita ou diga que a fase favorece o modelo.",
+  "resposta_pergunta_final": "Se este negócio tiver 1.000 clientes, ele deixa o dono mais rico ou apenas mais ocupado? Explique com base na complexidade, dependência e margem.",
+  "pontos_fortes": ["ponto 1","ponto 2","ponto 3"],
+  "pontos_criticos": ["ponto 1","ponto 2","ponto 3"],
+  "mudancas_sugeridas": [{"numero":1,"mudanca":"o que mudar","motivo":"por que isso destrava o modelo (entrega, margem ou aquisição)"},{"numero":2,"mudanca":"...","motivo":"..."},{"numero":3,"mudanca":"...","motivo":"..."}],
+  "alavanca_recomendada": "qual única mudança mais multiplica o sistema nos próximos 12 meses"
+}`;
+
+  try{
+    const d=await callClaudeJSON(prompt,false,3200);
+    renderAnalysis(d);
+  }catch(e){
+    document.getElementById('aibody').innerHTML=`<div style="color:var(--red);padding:18px;font-size:13px">❌ Erro: ${e.message}<br><span style="color:var(--t3);font-size:11px">Clique em "Gerar Análise com IA" novamente.</span></div>`;
+  }
+  btn.disabled=false;btn.innerHTML='✦ Gerar Análise com IA';
+}
+
+function renderAnalysis(d){
+  const vc={Excelente:'g',Bom:'g',Médio:'y',Fraco:'r'};
+  const{faturamentoMensal,ebitda,tempoMensalHoras,margem,horasFundador,lucroPorHoraFundador}=calcFin();
+  const recoMap={continuar_ajustar:{cls:'continuar',label:'✅ Continuar e Ajustar'},migrar:{cls:'migrar',label:'🔁 Migrar de Modelo'},desistir:{cls:'desistir',label:'🛑 Desistir'}};
+  const reco=recoMap[d.recomendacao_final]||recoMap.continuar_ajustar;
+  document.getElementById('aibody').innerHTML=`
+    ${d.recomendacao_final&&d.recomendacao_final!=='continuar_ajustar'?`
+    <div class="warn-banner">
+      <div class="warn-banner-icon">${d.recomendacao_final==='desistir'?'🛑':'🔁'}</div>
+      <div>
+        <div class="warn-banner-title">${d.recomendacao_final==='desistir'?'Considere desistir deste modelo':'Considere migrar para outro modelo'}</div>
+        <div class="warn-banner-text">${d.recomendacao_motivo||''}</div>
+      </div>
+    </div>`:''}
+
+    <div class="summary-grid">
+      <div class="summary-card"><div class="summary-card-lbl">Faturamento/mês</div><div class="summary-card-val">${fmtR(faturamentoMensal)}</div></div>
+      <div class="summary-card"><div class="summary-card-lbl">Lucro (EBITDA)/mês</div><div class="summary-card-val" style="color:${ebitda>0?'var(--grn)':'var(--red)'}">${fmtR(ebitda)}</div></div>
+      <div class="summary-card"><div class="summary-card-lbl">Margem</div><div class="summary-card-val">${margem.toFixed(1)}%</div></div>
+      <div class="summary-card"><div class="summary-card-lbl">Lucro/Hora Fundador</div><div class="summary-card-val">${horasFundador>0?fmtR(lucroPorHoraFundador):'—'}</div></div>
+    </div>
+
+    <div class="doc-section" style="background:var(--surf);border:1px solid var(--bord);border-radius:8px;padding:14px">
+      <h3>🏗️ Modelo Formatado</h3>
+      <p>${d.modelo_formatado}</p>
+    </div>
+
+    <div class="final-q-box">
+      <div class="final-q-label" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Diagnóstico — <span class="dinfo-val ${vc[d.veredicto]||'y'}" style="font-size:12px">${d.veredicto}</span><span class="reco-badge ${reco.cls}">${reco.label}</span></div>
+      <div class="final-q-answer" style="font-weight:600;color:var(--t1);margin-bottom:10px">${d.diagnostico_bom_ou_ruim}</div>
+      ${d.alerta_ciclo_vida?`<div class="final-q-answer" style="margin-bottom:10px"><b style="color:var(--org)">📈 Ciclo de Vida:</b> ${d.alerta_ciclo_vida}</div>`:''}
+      <div class="final-q-text" style="font-size:13px">"Se eu tiver 1.000 clientes, este negócio me deixa mais rico ou apenas mais ocupado?"</div>
+      <div class="final-q-answer">${d.resposta_pergunta_final}</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+      <div style="background:var(--grnd);border:1px solid rgba(52,211,153,.15);border-radius:8px;padding:14px">
+        <div class="doc-section"><h3 style="color:var(--grn)">✅ Pontos Fortes</h3><ul>${(d.pontos_fortes||[]).map(p=>`<li>${p}</li>`).join('')}</ul></div>
+      </div>
+      <div style="background:var(--redd);border:1px solid rgba(248,113,113,.15);border-radius:8px;padding:14px">
+        <div class="doc-section"><h3 style="color:var(--red)">⚠️ Pontos Críticos</h3><ul>${(d.pontos_criticos||[]).map(p=>`<li>${p}</li>`).join('')}</ul></div>
+      </div>
+    </div>
+
+    <div class="doc-section">
+      <h3>🎯 Mudanças Sugeridas</h3>
+      ${(d.mudancas_sugeridas||[]).map(a=>`
+        <div class="doc-block">
+          <div class="doc-block-num">${a.numero}</div>
+          <div><div class="doc-block-title">${a.mudanca}</div><div class="doc-block-desc">${a.motivo}</div></div>
+        </div>`).join('')}
+    </div>
+
+    <div class="doc-section" style="background:var(--accd);border:1px solid rgba(242,200,17,.2);border-radius:8px;padding:14px">
+      <h3>⚡ Alavanca Recomendada</h3>
+      <p style="color:var(--t1);font-weight:600">${d.alavanca_recomendada}</p>
+    </div>`;
+  toOutput();
+}
+
+// ═══════════ SAVE & COMPARE MODELS (persistent storage) ═══════════
+function snapshotCurrentModel(){
+  const{faturamentoMensal,ebitda,margem,lucroPorHoraFundador}=calcFin();
+  return{
+    id:'m_'+Date.now(),
+    nome:(document.getElementById('saveNameInput')?.value||M.nome||'Modelo sem nome').trim(),
+    savedAt:new Date().toISOString(),
+    score:overall(),
+    faturamentoMensal,ebitda,margem,
+    lucroPorHoraFundador:lucroPorHoraFundador||0,
+    cobranca:M.margem.cobranca,
+    snapshot:JSON.parse(JSON.stringify(M))
+  };
+}
+async function saveCurrentModel(){
+  const btn=document.getElementById('saveBtn');
+  btn.disabled=true;btn.textContent='⏳ Salvando...';
+  try{
+    const rec=snapshotCurrentModel();
+    let savedWhere='local';
+    if(supabaseStatus==='connected'){
+      try{
+        await sbInsert({
+          id:rec.id,nome:rec.nome,created_at:rec.savedAt,score:rec.score,
+          faturamento_mensal:rec.faturamentoMensal,ebitda:rec.ebitda,margem:rec.margem,
+          lucro_hora_fundador:rec.lucroPorHoraFundador,cobranca:rec.cobranca,snapshot:rec.snapshot
+        });
+        savedWhere='supabase';
+      }catch(supaErr){
+        console.warn('Falha ao salvar no Supabase, caindo para armazenamento local:',supaErr.message);
+        supabaseStatus='unreachable';
+        await window.storage.set('models:'+rec.id,JSON.stringify(rec),false);
+      }
+    }else{
+      await window.storage.set('models:'+rec.id,JSON.stringify(rec),false);
+    }
+    const fb=document.getElementById('saveFeedback');
+    fb.textContent='✅ "'+rec.nome+'" salvo'+(savedWhere==='supabase'?' no Supabase!':' (local)!');
+    fb.classList.add('show');
+    setTimeout(()=>fb.classList.remove('show'),3000);
+    await renderSavedModels();
+  }catch(e){
+    alert('Não foi possível salvar: '+e.message);
+  }
+  btn.disabled=false;btn.innerHTML='💾 Salvar Este Modelo';
+}
+async function listSavedModels(){
+  if(supabaseStatus==='connected'){
+    try{
+      const data=await sbList();
+      return(data||[]).map(row=>({
+        id:row.id,nome:row.nome,savedAt:row.created_at,score:row.score,
+        faturamentoMensal:row.faturamento_mensal,ebitda:row.ebitda,margem:row.margem,
+        lucroPorHoraFundador:row.lucro_hora_fundador,cobranca:row.cobranca,snapshot:row.snapshot
+      }));
+    }catch(e){
+      console.warn('Falha ao listar do Supabase, caindo para armazenamento local:',e.message);
+      supabaseStatus='unreachable';
+    }
+  }
+  try{
+    const res=await window.storage.list('models:',false);
+    if(!res||!res.keys||!res.keys.length)return[];
+    const models=[];
+    for(const k of res.keys){
+      try{
+        const item=await window.storage.get(k,false);
+        if(item&&item.value)models.push(JSON.parse(item.value));
+      }catch(_){}
+    }
+    models.sort((a,b)=>new Date(b.savedAt)-new Date(a.savedAt));
+    return models;
+  }catch(e){console.error('Erro ao listar modelos:',e);return[];}
+}
+let _savedModelsCache=[];
+function statusBadgeHtml(){
+  if(supabaseStatus==='connected') return `<span style="font-size:10px;font-weight:700;color:var(--grn);background:var(--grnd);border:1px solid rgba(52,211,153,.3);padding:3px 9px;border-radius:10px">🟢 Conectado ao Supabase</span>`;
+  if(supabaseStatus==='checking') return `<span style="font-size:10px;font-weight:700;color:var(--t2);background:var(--surf);border:1px solid var(--bord);padding:3px 9px;border-radius:10px">⏳ Verificando conexão...</span>`;
+  if(supabaseStatus==='unreachable') return `<span style="font-size:10px;font-weight:700;color:var(--org);background:var(--orgd);border:1px solid rgba(251,191,36,.3);padding:3px 9px;border-radius:10px" title="A prévia do Claude bloqueia conexões a domínios externos como o Supabase. Funciona normalmente se você abrir este arquivo fora do chat.">🟡 Supabase inacessível aqui — usando armazenamento local</span>`;
+  return `<span style="font-size:10px;font-weight:700;color:var(--org);background:var(--orgd);border:1px solid rgba(251,191,36,.3);padding:3px 9px;border-radius:10px">🟡 Supabase não configurado — usando armazenamento local</span>`;
+}
+async function renderSavedModels(){
+  const box=document.getElementById('savedModelsList');
+  const cmpBtn=document.getElementById('compareBtn');
+  const statusBox=document.getElementById('storageStatus');
+  if(statusBox) statusBox.innerHTML=statusBadgeHtml();
+  if(!box)return;
+  box.innerHTML=`<div style="color:var(--t3);font-size:12px">Carregando modelos salvos...</div>`;
+  await checkSupabaseReachable();
+  if(statusBox) statusBox.innerHTML=statusBadgeHtml();
+  let models=[];
+  try{
+    models=await listSavedModels();
+  }catch(e){
+    box.innerHTML=`<div style="color:var(--red);font-size:12px;padding:13px;background:var(--redd);border:1px solid rgba(248,113,113,.3);border-radius:8px">❌ Erro ao listar modelos: ${e.message}</div>`;
+    cmpBtn.style.display='none';
+    return;
+  }
+  _savedModelsCache=models;
+  if(!models.length){
+    box.innerHTML=`<div style="color:var(--t3);font-size:12px;padding:13px;background:var(--surf);border:1px solid var(--bord);border-radius:8px">Nenhum modelo salvo ainda.</div>`;
+    cmpBtn.style.display='none';
+    return;
+  }
+  cmpBtn.style.display=models.length>=2?'flex':'none';
+  box.innerHTML=models.map(m=>{
+    const cl=m.score>=70?'g':m.score>=40?'y':'r';
+    return`<div class="saved-model-card">
+      <label class="sm-check"><input type="checkbox" class="sm-checkbox" value="${m.id}" checked></label>
+      <div class="sm-info">
+        <div class="sm-name">${m.nome}</div>
+        <div class="sm-meta">Score <b class="${cl}">${m.score}</b> · ${fmtR(m.faturamentoMensal)}/mês fat. · EBITDA ${fmtR(m.ebitda)}/mês · ${new Date(m.savedAt).toLocaleDateString('pt-BR')}</div>
+      </div>
+      <button class="sm-btn" onclick="loadSavedModel('${m.id}')">📂 Carregar</button>
+      <button class="sm-btn del" onclick="deleteSavedModel('${m.id}')">🗑️</button>
+    </div>`;
+  }).join('');
+}
+async function deleteSavedModel(id){
+  try{
+    if(supabaseStatus==='connected'){
+      await sbDelete(id);
+    }else{
+      await window.storage.delete('models:'+id,false);
+    }
+  }catch(e){console.error('Erro ao apagar:',e);}
+  renderSavedModels();
+}
+function loadSavedModel(id){
+  const rec=_savedModelsCache.find(m=>m.id===id);
+  if(!rec)return;
+  for(const k in M) delete M[k];
+  Object.assign(M,rec.snapshot);
+  document.getElementById('bizName').value=M.nome||'';
+  CUR=0;
+  go(0);upd();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+async function compareModels(){
+  const checked=Array.from(document.querySelectorAll('.sm-checkbox:checked')).map(c=>c.value);
+  const models=_savedModelsCache.filter(m=>checked.includes(m.id));
+  if(models.length<2){
+    document.getElementById('compareResult').innerHTML=`<div style="color:var(--org);font-size:12px;padding:10px">Selecione pelo menos 2 modelos para comparar.</div>`;
+    return;
+  }
+  const btn=document.getElementById('compareBtn');
+  btn.disabled=true;btn.innerHTML='⏳ Comparando...';
+  document.getElementById('compareResult').innerHTML='<div class="dots"><span></span><span></span><span></span></div>';
+
+  const desc=models.map((m,i)=>{
+    const s=m.snapshot;
+    return`MODELO ${i+1} — "${m.nome}":
+- Score geral: ${m.score}/100
+- Faturamento/mês: R$${m.faturamentoMensal.toFixed(0)} | EBITDA/mês: R$${m.ebitda.toFixed(0)} | Margem: ${m.margem.toFixed(1)}%
+- Lucro por hora do fundador: R$${m.lucroPorHoraFundador.toFixed(0)}/h | Horas fundador/mês: ${s.produto.horas_fundador}
+- Formato de cobrança: ${m.cobranca} | Ticket: R$${s.margem.ticket}
+- Segmento: ${s.situacao.segmento||'N/I'} | Ciclo de vida: ${s.mercado.ciclo_vida||'N/I'}
+- Pessoas necessárias na operação: ${s.complexidade.pessoas_necessarias} | Se o fundador sumir 30 dias: ${s.produto.fundador_sai}/10
+- Capacidade hoje: ${s.capacidade.hoje} clientes | Dobro de clientes dobra o lucro: ${s.capacidade.dobro_lucro}/10`;
+  }).join('\n\n');
+
+  const prompt=`Você é um arquiteto de negócios no estilo Flávio Augusto e Conrado Adolpho. Compare os modelos de negócio abaixo e diga qual é o MELHOR caminho para o usuário ficar rico — ou seja, mais lucro líquido com menos esforço, complexidade e dependência do fundador. Responda SOMENTE com JSON (sem markdown):
+
+${desc}
+
+Responda com este JSON exato:
+{
+  "melhor_modelo": "nome exato do modelo vencedor",
+  "motivo": "explicação direta e comparativa, citando números, de por que esse modelo é o melhor caminho para enriquecer com menos esforço",
+  "ranking": [{"nome":"nome do modelo","posicao":1,"resumo":"por que está nessa posição, 1-2 frases"}],
+  "alerta": "se algum modelo tiver risco relevante (declínio de mercado, dependência alta do fundador, complexidade que não escala), mencione aqui — ou deixe vazio se não houver"
+}`;
+
+  try{
+    const d=await callClaudeJSON(prompt,false,2200);
+    const rankHtml=(d.ranking||[]).sort((a,b)=>a.posicao-b.posicao).map(r=>`
+      <div class="rank-card${r.posicao===1?' first':''}">
+        <div class="rank-pos">${r.posicao}</div>
+        <div><div class="rank-name">${r.nome}${r.posicao===1?' 🏆':''}</div><div class="rank-desc">${r.resumo}</div></div>
+      </div>`).join('');
+    document.getElementById('compareResult').innerHTML=`
+      <div class="final-q-box">
+        <div class="final-q-label">🏆 Melhor caminho para ficar rico: <span style="color:var(--t1)">${d.melhor_modelo}</span></div>
+        <div class="final-q-answer">${d.motivo}</div>
+      </div>
+      <div style="margin-top:14px">${rankHtml}</div>
+      ${d.alerta?`<div class="warn-banner" style="margin-top:14px"><div class="warn-banner-icon">⚠️</div><div><div class="warn-banner-title">Atenção</div><div class="warn-banner-text">${d.alerta}</div></div></div>`:''}`;
+  }catch(e){
+    document.getElementById('compareResult').innerHTML=`<div style="color:var(--red);padding:12px;font-size:13px">❌ Erro: ${e.message}</div>`;
+  }
+  btn.disabled=false;btn.innerHTML='⚖️ Comparar Selecionados com IA';
+}
+
+// ═══════════ INIT ═══════════
+go(0);upd();
+renderSavedModels();
+setCobranca('unico');
+</script>
+</body>
+</html>
