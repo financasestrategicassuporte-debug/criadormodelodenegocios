@@ -233,6 +233,46 @@ body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;font-si
 .compare-row-label{color:var(--t3)!important;font-weight:600;font-size:11px!important;font-family:'Inter',sans-serif!important}
 .compare-best{color:var(--grn)!important;font-weight:800;background:var(--grnd)}
 .compare-table tbody tr:hover{background:var(--surf)}
+
+/* ECONOMIC QUALITY COMPARATOR */
+.econ-winner-card{background:linear-gradient(135deg,var(--accd),transparent);border:2px solid var(--acc);border-radius:14px;padding:22px 24px;margin-bottom:18px;text-align:center}
+.econ-winner-badge{display:inline-block;background:var(--acc);color:#000;font:800 11px 'Inter',sans-serif;padding:4px 14px;border-radius:14px;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px}
+.econ-winner-name{font:900 22px 'Inter',sans-serif;color:var(--t1);margin-bottom:6px}
+.econ-winner-score{font-size:12px;color:var(--t2);margin-bottom:12px}
+.econ-winner-score b{color:var(--acc);font-family:'JetBrains Mono',monospace;font-size:14px}
+.econ-winner-insight{font-size:13px;color:var(--t1);line-height:1.65;max-width:640px;margin:0 auto}
+.econ-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+.econ-section{background:var(--card);border:1px solid var(--bord);border-radius:10px;padding:16px 18px}
+.econ-section.full{grid-column:1/-1}
+.econ-section-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.econ-metric-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bord)}
+.econ-metric-row:last-of-type{border-bottom:none}
+.econ-metric-name{font-size:12px;color:var(--t2);font-weight:600}
+.econ-metric-val{font:800 14px 'JetBrains Mono',monospace;color:var(--t1)}
+.econ-metric-val.best{color:var(--grn)}
+.econ-insight{margin-top:10px;padding-top:10px;border-top:1px dashed var(--bord);font-size:12px;color:var(--t2);line-height:1.55}
+.dep-card{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bord)}
+.dep-card:last-of-type{border-bottom:none}
+.dep-card-icon{font-size:18px;flex-shrink:0}
+.dep-card-name{font-size:12px;font-weight:700;color:var(--t1);margin-bottom:1px}
+.dep-card-label{font-size:11px}
+.dep-card-label.g{color:var(--grn)}.dep-card-label.y{color:var(--org)}.dep-card-label.r{color:var(--red)}
+.complex-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:8px;font:800 12px 'Inter',sans-serif;margin-right:8px;margin-bottom:6px}
+.complex-badge.g{background:var(--grnd);color:var(--grn);border:1px solid rgba(52,211,153,.3)}
+.complex-badge.y{background:var(--orgd);color:var(--org);border:1px solid rgba(251,191,36,.3)}
+.complex-badge.r{background:var(--redd);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+.scale-row{display:flex;align-items:center;gap:10px;padding:7px 0}
+.scale-bar-track{flex:1;height:7px;background:var(--bord);border-radius:4px;overflow:hidden}
+.scale-bar-fill{height:100%;border-radius:4px;background:var(--blu)}
+.proj-compare-row{display:flex;align-items:center;gap:10px;padding:8px 0}
+.proj-compare-name{width:120px;flex-shrink:0;font-size:11px;color:var(--t2);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proj-compare-bar-track{flex:1;height:20px;background:var(--surf);border-radius:5px;overflow:hidden;position:relative}
+.proj-compare-bar-fill{height:100%;border-radius:5px;display:flex;align-items:center;padding-right:8px;justify-content:flex-end}
+.proj-compare-bar-fill span{font:700 10px 'JetBrains Mono',monospace;color:#04122B}
+.insights-list{list-style:none;padding:0;margin:0}
+.insights-list li{display:flex;gap:9px;padding:8px 0;border-bottom:1px solid var(--bord);font-size:12px;color:var(--t2);line-height:1.55}
+.insights-list li:last-child{border-bottom:none}
+.insights-list li::before{content:'▸';color:var(--acc);font-weight:800;flex-shrink:0}
 .score-card{background:var(--card);border:1px solid var(--bord);border-radius:9px;padding:13px;text-align:center;position:relative}
 .score-card-icon{font-size:16px;margin-bottom:4px}
 .score-card-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);margin-bottom:6px}
@@ -1427,53 +1467,239 @@ async function compareModels(){
   const btn=document.getElementById('compareBtn');
   btn.disabled=true;btn.innerHTML='⏳ Comparando...';
 
-  // 1) Mostra a prova numérica imediatamente, lado a lado
-  document.getElementById('compareResult').innerHTML=`
-    <div class="doc-section"><h3>📊 Comparação Direta — os números</h3>${buildComparisonTable(models)}</div>
-    <div id="compareAiBox" style="margin-top:16px"><div class="dots"><span></span><span></span><span></span></div></div>`;
+  // 1) Tabela de métricas diretas (instantânea)
+  let html=`<div class="doc-section"><h3>📊 Comparação Direta — os números</h3>${buildComparisonTable(models)}</div>`;
 
-  const desc=models.map((m,i)=>{
-    const s=m.snapshot;
-    return`MODELO ${i+1} — "${m.nome}":
-- Score geral: ${m.score}/100
-- Faturamento/mês: R$${m.faturamentoMensal.toFixed(0)} | EBITDA/mês (geração de caixa): R$${m.ebitda.toFixed(0)} | Margem: ${m.margem.toFixed(1)}%
-- Lucro por hora do fundador: R$${m.lucroPorHoraFundador.toFixed(0)}/h | Horas fundador/mês: ${s.produto.horas_fundador}
-- Formato de cobrança: ${m.cobranca} | Ticket: R$${s.margem.ticket}
-- Segmento: ${s.situacao.segmento||'N/I'} | Ciclo de vida: ${s.mercado.ciclo_vida||'N/I'}
-- Pessoas necessárias na operação (complexidade): ${s.complexidade.pessoas_necessarias} | Se o fundador sumir 30 dias: ${s.produto.fundador_sai}/10
-- Capacidade hoje: ${s.capacidade.hoje} clientes | Dobro de clientes dobra o lucro: ${s.capacidade.dobro_lucro}/10`;
-  }).join('\n\n');
+  // 2) Análise de QUALIDADE ECONÔMICA (instantânea, calculada localmente)
+  const data=computeEconomicQuality(models);
+  html+=buildWinnerCard(data);
+  html+=`<div class="econ-grid">
+    ${buildCaixaPorHoraSection(data)}
+    ${buildEbitdaPorPessoaSection(data)}
+    ${buildDependencyTestSection(data)}
+    ${buildHiddenComplexitySection(data)}
+    ${buildScalePotentialSection(data)}
+    ${build5YearProjectionSection(data)}
+  </div>`;
+  html+=buildStrategicInsights(data);
+  html+=`<div id="compareAiBox" style="margin-top:16px"></div>`;
+  document.getElementById('compareResult').innerHTML=html;
 
-  const prompt=`Você é um arquiteto de negócios no estilo Flávio Augusto e Conrado Adolpho. Compare os modelos de negócio abaixo e diga qual é o MELHOR caminho para o usuário ficar rico — ou seja, mais lucro líquido e geração de caixa (EBITDA) com menos esforço (horas do fundador), menos complexidade e menos dependência do fundador. Responda SOMENTE com JSON (sem markdown):
+  // 3) IA enriquece com narrativa executiva — se falhar, a comparação acima continua 100% válida
+  runCompareAINarrative(data);
+  btn.disabled=false;btn.innerHTML='⚖️ Comparar Selecionados com IA';
+}
 
-${desc}
+async function runCompareAINarrative(data){
+  const box=document.getElementById('compareAiBox');
+  if(!box)return;
+  box.innerHTML='<div class="dots"><span></span><span></span><span></span></div>';
 
-Responda com este JSON exato:
-{
-  "melhor_modelo": "nome exato do modelo vencedor",
-  "motivo": "explicação direta e comparativa, CITANDO OS NÚMEROS exatos de lucro, EBITDA, horas dedicadas e complexidade de cada modelo, provando por que esse modelo é o melhor caminho para enriquecer com menos esforço",
-  "ranking": [{"nome":"nome do modelo","posicao":1,"resumo":"por que está nessa posição, citando pelo menos 1 número, 1-2 frases"}],
-  "alerta": "se algum modelo tiver risco relevante (declínio de mercado, dependência alta do fundador, complexidade que não escala), mencione aqui — ou deixe vazio se não houver"
-}`;
+  const winner=data[0];
+  const numerosCalculados=data.map(d=>`"${d.model.nome}": qualidade_economica=${d.qualidadeScore.toFixed(0)}/100, EBITDA/mes=R$${d.model.ebitda.toFixed(0)}, margem=${d.model.margem.toFixed(1)}%, horas_fundador=${d.horasFundador}, caixa_por_hora=R$${d.caixaPorHora.toFixed(0)}/h, ebitda_por_pessoa=R$${d.ebitdaPorPessoa.toFixed(0)}, dependencia=${d.dependenciaScore.toFixed(1)}/10, complexidade=${d.complexidadeOculta.toFixed(1)}/10, escala=${d.escalaScore.toFixed(1)}/10`).join(' | ');
+
+  const prompt=`Arquiteto de negocios no estilo Flavio Augusto e Conrado Adolpho. Numeros ja calculados - nao recalcule. Vencedor economico ja determinado: ${winner.model.nome}. Use os numeros exatos abaixo para escrever uma narrativa executiva curta e direta. NUMEROS: ${numerosCalculados}. Responda SOMENTE com JSON sem markdown: {"justificativa_vencedor":"2-3 frases executivas citando numeros de caixa por hora, dependencia, escala e EBITDA por pessoa","insights_estrategicos":["insight citando numero","insight citando numero","insight citando numero","insight citando numero"]}`;
 
   try{
-    const d=await callClaudeJSON(prompt,false,2200);
-    const rankHtml=(d.ranking||[]).sort((a,b)=>a.posicao-b.posicao).map(r=>`
-      <div class="rank-card${r.posicao===1?' first':''}">
-        <div class="rank-pos">${r.posicao}</div>
-        <div><div class="rank-name">${r.nome}${r.posicao===1?' 🏆':''}</div><div class="rank-desc">${r.resumo}</div></div>
-      </div>`).join('');
-    document.getElementById('compareAiBox').innerHTML=`
+    const d=await callClaudeJSON(prompt,false,1200);
+    box.innerHTML=`
       <div class="final-q-box">
-        <div class="final-q-label">🏆 Melhor caminho para ficar rico: <span style="color:var(--t1)">${d.melhor_modelo}</span></div>
-        <div class="final-q-answer">${d.motivo}</div>
+        <div class="final-q-label">🧠 Análise Executiva da IA</div>
+        <div class="final-q-answer">${d.justificativa_vencedor||''}</div>
       </div>
-      <div style="margin-top:14px">${rankHtml}</div>
-      ${d.alerta?`<div class="warn-banner" style="margin-top:14px"><div class="warn-banner-icon">⚠️</div><div><div class="warn-banner-title">Atenção</div><div class="warn-banner-text">${d.alerta}</div></div></div>`:''}`;
+      ${d.insights_estrategicos&&d.insights_estrategicos.length?`<div class="econ-section full" style="margin-top:14px"><div class="econ-section-title">📈 Insights Estratégicos (IA)</div><ul class="insights-list">${d.insights_estrategicos.map(i=>`<li>${i}</li>`).join('')}</ul></div>`:''}`;
   }catch(e){
-    document.getElementById('compareAiBox').innerHTML=`<div style="color:var(--red);padding:12px;font-size:13px">❌ Erro ao gerar a explicação da IA: ${e.message}<br><span style="color:var(--t3);font-size:11px">A tabela de números acima continua válida — clique em "Comparar" de novo para tentar a explicação.</span></div>`;
+    box.innerHTML=`<div style="background:var(--surf);border:1px solid var(--bord);border-radius:8px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px">
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:4px">🧠 Análise Executiva da IA</div>
+        <div style="font-size:11px;color:var(--t3);line-height:1.6">A narrativa da IA não pôde ser carregada nesta sessão.<br>Toda a comparação de qualidade econômica acima está completa e calculada automaticamente — a IA só adiciona o texto explicativo.</div>
+      </div>
+      <button onclick="runCompareAINarrative(window.__lastCompareData)" style="background:var(--surf);border:1.5px solid var(--bord);color:var(--t2);border-radius:7px;padding:7px 13px;font:600 11px 'Inter',sans-serif;cursor:pointer;flex-shrink:0;white-space:nowrap">🔄 Tentar novamente</button>
+    </div>`;
+    window.__lastCompareData=data;
   }
-  btn.disabled=false;btn.innerHTML='⚖️ Comparar Selecionados com IA';
+}
+
+// ───────── Cálculo de Qualidade Econômica (determinístico, local) ─────────
+function normalizeSet(vals,higherBetter){
+  const min=Math.min(...vals),max=Math.max(...vals);
+  if(max===min) return vals.map(()=>50);
+  return vals.map(v=>higherBetter?(v-min)/(max-min)*100:(max-v)/(max-min)*100);
+}
+function joinPt(arr){
+  if(arr.length===0)return'';
+  if(arr.length===1)return arr[0];
+  return arr.slice(0,-1).join(', ')+' e '+arr[arr.length-1];
+}
+function complexBucket(v){
+  if(v<=3.3)return{icon:'🟢',label:'Baixa Complexidade',cls:'g'};
+  if(v<=6.6)return{icon:'🟡',label:'Média Complexidade',cls:'y'};
+  return{icon:'🔴',label:'Alta Complexidade',cls:'r'};
+}
+function dependencyLabel(v){
+  if(v>=8)return{icon:'✅',label:'Continua operando normalmente',cls:'g'};
+  if(v>=4)return{icon:'🟡',label:'Cai mas sobrevive — risco moderado',cls:'y'};
+  return{icon:'🔴',label:'Forte risco operacional',cls:'r'};
+}
+function computeEconomicQuality(models){
+  const data=models.map(m=>{
+    const s=m.snapshot;
+    const horasFundador=s.produto.horas_fundador||0;
+    const pessoasNecessarias=s.complexidade.pessoas_necessarias||0;
+    const caixaPorHora=horasFundador>0?m.ebitda/horasFundador:0;
+    const ebitdaPorPessoa=pessoasNecessarias>0?m.ebitda/pessoasNecessarias:m.ebitda;
+    const dependenciaScore=avg([s.produto.independencia,s.produto.fundador_sai,s.produto.fundador_sai,s.sistema.onboarding,s.sistema.entrega_doc]);
+    const fundadorSai=s.produto.fundador_sai??5;
+    const entregaScore=s.complexidade.entrega??5;
+    const pessoasComplexContrib=10-scoreFromPessoas(pessoasNecessarias);
+    const horasComplexContrib=horasFundador>=80?10:horasFundador>=40?6:horasFundador>=20?3:0;
+    const depComplexContrib=10-dependenciaScore;
+    const entregaComplexContrib=10-entregaScore;
+    const complexidadeOculta=avg([pessoasComplexContrib,horasComplexContrib,depComplexContrib,entregaComplexContrib]);
+    const alavancaSnap=avg([s.produto.padronizacao,s.complexidade.entrega,s.complexidade.comercial,s.sistema.aquisicao]);
+    const escalaScore=avg([alavancaSnap,s.capacidade.dobro_lucro??5,s.complexidade.escala_teste??5]);
+    return{model:m,horasFundador,pessoasNecessarias,caixaPorHora,ebitdaPorPessoa,dependenciaScore,fundadorSai,complexidadeOculta,escalaScore};
+  });
+  const nEbitda=normalizeSet(data.map(d=>d.model.ebitda),true);
+  const nMargem=normalizeSet(data.map(d=>d.model.margem),true);
+  const nCaixaHora=normalizeSet(data.map(d=>d.caixaPorHora),true);
+  const nDep=normalizeSet(data.map(d=>d.dependenciaScore),true);
+  const nComp=normalizeSet(data.map(d=>d.complexidadeOculta),false);
+  const nEscala=normalizeSet(data.map(d=>d.escalaScore),true);
+  const nCap=normalizeSet(data.map(d=>d.model.snapshot.capacidade.dobro_lucro??5),true);
+  data.forEach((d,i)=>{
+    d.qualidadeScore=nEbitda[i]*0.25+nMargem[i]*0.12+nCaixaHora[i]*0.23+nDep[i]*0.15+nComp[i]*0.10+nEscala[i]*0.10+nCap[i]*0.05;
+  });
+  data.sort((a,b)=>b.qualidadeScore-a.qualidadeScore);
+  return data;
+}
+
+// ───────── 1. Vencedor Econômico ─────────
+function buildWinnerCard(data){
+  const winner=data[0],runner=data[1];
+  let insight=`${winner.model.nome} apresenta maior qualidade econômica.`;
+  if(runner){
+    const reasons=[];
+    if(winner.model.ebitda>runner.model.ebitda){
+      const delta=runner.model.ebitda!==0?((winner.model.ebitda-runner.model.ebitda)/Math.abs(runner.model.ebitda)*100):null;
+      reasons.push('gera mais caixa'+(delta!==null?` (${delta>=0?'+':''}${delta.toFixed(0)}% de EBITDA)`:''));
+    }
+    if(winner.horasFundador<runner.horasFundador) reasons.push('exige menos horas do fundador');
+    if(winner.dependenciaScore>runner.dependenciaScore) reasons.push('possui menor dependência operacional');
+    if(winner.escalaScore>runner.escalaScore) reasons.push('tem maior potencial de escala');
+    if(winner.complexidadeOculta<runner.complexidadeOculta) reasons.push('opera com menos complexidade oculta');
+    insight=`${winner.model.nome} apresenta maior qualidade econômica`+(reasons.length?` porque ${joinPt(reasons)}.`:'.');
+  }
+  return`<div class="econ-winner-card">
+    <div class="econ-winner-badge">🏆 Vencedor Econômico</div>
+    <div class="econ-winner-name">${winner.model.nome}</div>
+    <div class="econ-winner-score">Qualidade Econômica: <b>${winner.qualidadeScore.toFixed(0)}/100</b></div>
+    <div class="econ-winner-insight">${insight}</div>
+  </div>`;
+}
+
+// ───────── 2. Caixa por Hora do Fundador ─────────
+function buildCaixaPorHoraSection(data){
+  const sorted=[...data].sort((a,b)=>b.caixaPorHora-a.caixaPorHora);
+  const best=sorted[0];
+  const rows=data.map(d=>`<div class="econ-metric-row"><span class="econ-metric-name">${d.model.nome}</span><span class="econ-metric-val${d===best&&d.horasFundador>0?' best':''}">${d.horasFundador>0?fmtR(d.caixaPorHora)+'/h':'— sem horas informadas'}</span></div>`).join('');
+  let insight='';
+  if(sorted.length>=2&&sorted[0].horasFundador>0&&sorted[1].horasFundador>0&&sorted[1].caixaPorHora!==0){
+    const delta=((sorted[0].caixaPorHora-sorted[1].caixaPorHora)/Math.abs(sorted[1].caixaPorHora)*100);
+    insight=`${sorted[0].model.nome} gera ${delta>=0?'+':''}${delta.toFixed(0)}% mais caixa por hora investida pelo fundador.`;
+  }
+  return econSection('💵 Caixa por Hora do Fundador',rows,insight);
+}
+
+// ───────── 3. EBITDA por Pessoa (Eficiência Operacional) ─────────
+function buildEbitdaPorPessoaSection(data){
+  const sorted=[...data].sort((a,b)=>b.ebitdaPorPessoa-a.ebitdaPorPessoa);
+  const best=sorted[0];
+  const rows=data.map(d=>`<div class="econ-metric-row"><span class="econ-metric-name">${d.model.nome}</span><span class="econ-metric-val${d===best?' best':''}">${fmtR(d.ebitdaPorPessoa)}</span></div>`).join('');
+  let insight='';
+  if(sorted.length>=2) insight=`${sorted[0].model.nome} gera mais caixa por colaborador e apresenta maior eficiência operacional.`;
+  return econSection('⚙️ EBITDA por Pessoa (Eficiência)',rows,insight);
+}
+
+// ───────── 4. Teste de Dependência ─────────
+function buildDependencyTestSection(data){
+  const cards=data.map(d=>{
+    const lbl=dependencyLabel(d.fundadorSai);
+    return`<div class="dep-card"><div class="dep-card-icon">${lbl.icon}</div><div><div class="dep-card-name">${d.model.nome}</div><div class="dep-card-label ${lbl.cls}">${lbl.label}</div></div></div>`;
+  }).join('');
+  const worst=[...data].sort((a,b)=>a.fundadorSai-b.fundadorSai)[0];
+  const best=[...data].sort((a,b)=>b.fundadorSai-a.fundadorSai)[0];
+  let insight='';
+  if(best.fundadorSai>worst.fundadorSai) insight=`${best.model.nome} resiste melhor à ausência do fundador, enquanto ${worst.model.nome} apresenta maior risco operacional nesse cenário.`;
+  return econSection('🔗 Se o Fundador Sumir por 30 Dias',cards,insight);
+}
+
+// ───────── 5. Complexidade Oculta ─────────
+function buildHiddenComplexitySection(data){
+  const badges=data.map(d=>{
+    const b=complexBucket(d.complexidadeOculta);
+    return`<span class="complex-badge ${b.cls}">${b.icon} ${d.model.nome}: ${b.label}</span>`;
+  }).join('');
+  const worst=[...data].sort((a,b)=>b.complexidadeOculta-a.complexidadeOculta)[0];
+  const drivers=[];
+  if(worst.pessoasNecessarias>=5) drivers.push('número de pessoas necessárias');
+  if(worst.horasFundador>=40) drivers.push('horas do fundador');
+  if(worst.dependenciaScore<6) drivers.push('dependência do fundador');
+  const insight=`${worst.model.nome} concentra a maior complexidade oculta do grupo${drivers.length?`, principalmente por ${joinPt(drivers)}`:''}.`;
+  return econSection('🧩 Complexidade Oculta',`<div style="margin-bottom:4px">${badges}</div>`,insight,true);
+}
+
+// ───────── 6. Potencial de Escala ─────────
+function buildScalePotentialSection(data){
+  const rows=data.map(d=>`<div class="scale-row"><span class="econ-metric-name" style="width:120px;flex-shrink:0">${d.model.nome}</span><div class="scale-bar-track"><div class="scale-bar-fill" style="width:${d.escalaScore*10}%"></div></div><span class="econ-metric-val" style="font-size:12px">${d.escalaScore.toFixed(1)}/10</span></div>`).join('');
+  const best=[...data].sort((a,b)=>b.escalaScore-a.escalaScore)[0];
+  const insight=`${best.model.nome} possui maior alavancagem operacional e melhor potencial de crescimento — lucro cresce mais rápido que a estrutura necessária para sustentá-lo.`;
+  return econSection('📈 Potencial de Escala',rows,insight,true);
+}
+
+// ───────── 7. Projeção de Riqueza em 5 anos (ilustrativa) ─────────
+function project5Years(d){
+  const growthRate=0.05+(d.escalaScore/10)*0.25;
+  let cash=0,ebitdaAnnual=d.model.ebitda*12;
+  for(let y=0;y<5;y++){cash+=ebitdaAnnual;ebitdaAnnual*=(1+growthRate);}
+  return cash;
+}
+function build5YearProjectionSection(data){
+  const projs=data.map(d=>({d,total:project5Years(d)}));
+  const maxTotal=Math.max(...projs.map(p=>p.total),1);
+  const rows=projs.map(p=>{
+    const pct=Math.max((p.total/maxTotal)*100,8);
+    const isBest=p.total===Math.max(...projs.map(x=>x.total));
+    return`<div class="proj-compare-row">
+      <span class="proj-compare-name">${p.d.model.nome}</span>
+      <div class="proj-compare-bar-track"><div class="proj-compare-bar-fill" style="width:${pct}%;background:${isBest?'var(--grn)':'var(--blu)'}"><span>${fmtR(p.total)}</span></div></div>
+    </div>`;
+  }).join('');
+  const best=projs.sort((a,b)=>b.total-a.total)[0];
+  const insight=`Se ambos forem executados corretamente durante 5 anos, ${best.d.model.nome} possui potencial significativamente maior de geração de caixa acumulada devido à sua margem, complexidade e escalabilidade. <span style="color:var(--t3)">(estimativa ilustrativa, não é previsão exata)</span>`;
+  return econSection('🔮 Projeção de Caixa Acumulado em 5 Anos',rows,insight,true);
+}
+
+// ───────── 8. Insights Estratégicos (determinísticos) ─────────
+function buildStrategicInsights(data){
+  const insights=[];
+  const byCaixaHora=[...data].filter(d=>d.horasFundador>0).sort((a,b)=>b.caixaPorHora-a.caixaPorHora);
+  if(byCaixaHora.length) insights.push(`${byCaixaHora[0].model.nome} possui melhor relação entre caixa e esforço (${fmtR(byCaixaHora[0].caixaPorHora)}/hora do fundador).`);
+  const byDep=[...data].sort((a,b)=>a.dependenciaScore-b.dependenciaScore);
+  if(byDep[0].dependenciaScore<7) insights.push(`${byDep[0].model.nome} apresenta maior dependência do fundador (nota ${byDep[0].dependenciaScore.toFixed(1)}/10).`);
+  const byEscala=[...data].sort((a,b)=>b.escalaScore-a.escalaScore);
+  if(byEscala[0].escalaScore>=6.5) insights.push(`${byEscala[0].model.nome} escala sem crescimento proporcional da equipe (potencial de escala ${byEscala[0].escalaScore.toFixed(1)}/10).`);
+  const byComplex=[...data].sort((a,b)=>b.complexidadeOculta-a.complexidadeOculta);
+  if(byComplex[0].complexidadeOculta>=6) insights.push(`${byComplex[0].model.nome} gera mais complexidade operacional oculta.`);
+  insights.push(`${data[0].model.nome} possui maior valor econômico de longo prazo (qualidade econômica ${data[0].qualidadeScore.toFixed(0)}/100).`);
+  return`<div class="econ-section full" style="margin-bottom:16px"><div class="econ-section-title">📈 Insights Estratégicos</div><ul class="insights-list">${insights.map(i=>`<li>${i}</li>`).join('')}</ul></div>`;
+}
+function econSection(title,bodyHtml,insightText,isFull){
+  return`<div class="econ-section${isFull?' full':''}">
+    <div class="econ-section-title">${title}</div>
+    ${bodyHtml}
+    ${insightText?`<div class="econ-insight">💡 ${insightText}</div>`:''}
+  </div>`;
 }
 
 // ═══════════ INIT ═══════════
