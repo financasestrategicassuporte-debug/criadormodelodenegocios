@@ -1487,23 +1487,42 @@ async function compareModels(){
   // 1) Tabela de métricas diretas (instantânea)
   let html=`<div class="doc-section"><h3>📊 Comparação Direta — os números</h3>${buildComparisonTable(models)}</div>`;
 
-  // 2) Análise de QUALIDADE ECONÔMICA (instantânea, calculada localmente)
-  const data=computeEconomicQuality(models);
-  html+=buildWinnerCard(data);
-  html+=`<div class="econ-grid">
-    ${buildCaixaPorHoraSection(data)}
-    ${buildEbitdaPorPessoaSection(data)}
-    ${buildDependencyTestSection(data)}
-    ${buildHiddenComplexitySection(data)}
-    ${buildScalePotentialSection(data)}
-    ${build5YearProjectionSection(data)}
-  </div>`;
-  html+=buildStrategicInsights(data);
+  // 2) QUALIDADE ECONÔMICA — cada seção tem try-catch individual para não deixar de renderizar
+  let econHtml='';
+  try{
+    const data=computeEconomicQuality(models);
+    let sections='';
+    try{sections+=buildCaixaPorHoraSection(data);}catch(e){sections+=`<div class="econ-section">Caixa/hora indisponível</div>`;}
+    try{sections+=buildEbitdaPorPessoaSection(data);}catch(e){}
+    try{sections+=buildDependencyTestSection(data);}catch(e){}
+    try{sections+=buildHiddenComplexitySection(data);}catch(e){}
+    try{sections+=buildScalePotentialSection(data);}catch(e){}
+    try{sections+=build5YearProjectionSection(data);}catch(e){}
+    let insightsHtml='';
+    try{insightsHtml=buildStrategicInsights(data);}catch(e){}
+    let winnerHtml='';
+    try{winnerHtml=buildWinnerCard(data);}catch(e){}
+
+    econHtml=`
+      <div style="border-top:2px solid var(--acc);margin:24px 0 20px;padding-top:6px;display:flex;align-items:center;gap:12px">
+        <span style="font:800 13px 'Inter',sans-serif;color:var(--acc);text-transform:uppercase;letter-spacing:.1em">Análise de Qualidade Econômica</span>
+        <span style="font-size:11px;color:var(--t3)">Qual modelo cria mais riqueza com menos esforço, menos dependência e maior escala?</span>
+      </div>
+      ${winnerHtml}
+      <div class="econ-grid">${sections}</div>
+      ${insightsHtml}`;
+
+    // Salva data para retry da IA
+    window.__lastCompareData=data;
+  }catch(e){
+    econHtml=`<div style="color:var(--org);font-size:12px;padding:12px;background:var(--surf);border:1px solid var(--bord);border-radius:8px;margin-top:16px">⚠️ Erro ao calcular qualidade econômica: ${e.message}</div>`;
+  }
+  html+=econHtml;
   html+=`<div id="compareAiBox" style="margin-top:16px"></div>`;
   document.getElementById('compareResult').innerHTML=html;
 
   // 3) IA enriquece com narrativa executiva — se falhar, a comparação acima continua 100% válida
-  runCompareAINarrative(data);
+  if(window.__lastCompareData) runCompareAINarrative(window.__lastCompareData);
   btn.disabled=false;btn.innerHTML='⚖️ Comparar Selecionados com IA';
 }
 
