@@ -506,19 +506,36 @@ function extractJSONBlock(text){
 async function callClaudeRaw(prompt,useSearch,maxTokens){
   const body={model:'claude-sonnet-4-6',max_tokens:maxTokens||2200,messages:[{role:'user',content:prompt}]};
   if(useSearch) body.tools=[{type:'web_search_20250305',name:'web_search'}];
+
+  // Auto-detect environment:
+  // - Claude preview iframe → hostname vazio ou claude.ai → API direta (Claude proxeia automaticamente)
+  // - Vercel / qualquer outro host → /api/analyze (nossa função serverless, que guarda a API key no servidor)
+  const h=window.location.hostname;
+  const isClaudePreview=!h||h==='claude.ai'||h.endsWith('.claude.ai');
+  const endpoint=isClaudePreview
+    ?'https://api.anthropic.com/v1/messages'
+    :'/api/analyze';
+
   let res;
   try{
-    res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   }catch(networkErr){
-    const e=new Error('Falha de conexão com a IA (Failed to fetch). Verifique sua internet e tente novamente — se persistir, recarregue a página.');
+    const isVercel=!isClaudePreview;
+    const hint=isVercel
+      ?'\n\nSe você acabou de fazer o deploy na Vercel, verifique se adicionou a variável de ambiente ANTHROPIC_API_KEY em Project Settings → Environment Variables.'
+      :'\n\nVerifique sua conexão com a internet e tente novamente.';
+    const e=new Error('Falha de conexão com a IA.'+hint);
     e.isNetwork=true;
     throw e;
   }
   if(!res.ok){
     let msg='Erro HTTP '+res.status;
-    try{const errData=await res.json();if(errData.error)msg=errData.error.message||msg;}catch(_){}
+    try{const err=await res.json();if(err.error&&err.error.message)msg=err.error.message;else if(err.message)msg=err.message;}catch(_){}
+    if(res.status===500&&msg.includes('ANTHROPIC_API_KEY')){
+      throw new Error('⚙️ Configuração necessária: '+msg);
+    }
     const e=new Error(msg);
-    e.isNetwork = res.status>=500||res.status===429;
+    e.isNetwork=res.status>=500||res.status===429;
     throw e;
   }
   const data=await res.json();
