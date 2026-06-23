@@ -506,40 +506,44 @@ function extractJSONBlock(text){
 async function callClaudeRaw(prompt,useSearch,maxTokens){
   const body={model:'claude-sonnet-4-6',max_tokens:maxTokens||2200,messages:[{role:'user',content:prompt}]};
   if(useSearch) body.tools=[{type:'web_search_20250305',name:'web_search'}];
-  const fetchOpts={method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)};
 
-  // Estratégia: tenta API direta (funciona no Claude preview, onde é proxiada automaticamente).
-  // Se der erro de rede/CORS (Vercel / browser bloqueando), cai para /api/analyze (nossa função serverless).
-  async function tryEndpoint(url){
-    const res=await fetch(url,fetchOpts);
+  async function doFetch(url){
+    // Cria novo objeto de opções a cada chamada para evitar reuso de body consumido
+    const opts={method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)};
+    let res;
+    try{
+      res=await fetch(url,opts);
+    }catch(netErr){
+      // TypeError = erro de rede/CORS (fetch nem saiu)
+      const e=new Error('network');e.isNetworkErr=true;throw e;
+    }
     if(!res.ok){
       let msg='Erro HTTP '+res.status;
-      try{const e=await res.json();if(e?.error?.message)msg=e.error.message;else if(e?.message)msg=e.message;}catch(_){}
-      if(res.status===404&&url.startsWith('/'))
-        throw Object.assign(new Error('Função /api/analyze não encontrada. Siga o passo a passo abaixo.'),{is404:true});
-      const e=new Error(msg);e.isNetwork=res.status>=500||res.status===429;throw e;
+      try{const j=await res.json();msg=j?.error?.message||j?.message||msg;}catch(_){}
+      const e=new Error(msg);
+      // 5xx e 429 são transientes → pode tentar outro endpoint
+      e.isNetworkErr=res.status>=500||res.status===429;
+      throw e;
     }
     const data=await res.json();
     if(data.error)throw new Error(data.error.message||'Erro na API');
     return(data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n');
   }
 
-  // 1ª tentativa: API direta da Anthropic (Claude preview a proxia; fora do Claude dá TypeError de rede)
+  // 1ª tentativa: API direta (Claude preview proxia automaticamente; fora do Claude dá erro de rede)
   try{
-    return await tryEndpoint('https://api.anthropic.com/v1/messages');
+    return await doFetch('https://api.anthropic.com/v1/messages');
   }catch(err){
-    const isNetworkErr=err instanceof TypeError||err.message.includes('Failed to fetch')||err.message.includes('fetch');
-    if(!isNetworkErr) throw err; // erro real da API (ex: 400, 401) → não tenta proxy
+    if(!err.isNetworkErr) throw err; // erro 4xx real (bad request, auth, etc.) → não adianta tentar proxy
+    console.warn('[GFB AI] API direta falhou ('+err.message+'), tentando proxy Supabase...');
   }
 
-  // 2ª tentativa: Supabase Edge Function (funciona na Vercel e em qualquer host — API key já está no servidor)
+  // 2ª tentativa: Supabase Edge Function (funciona na Vercel — API key está no servidor)
   try{
-    return await tryEndpoint('https://vsnfqohptlporesdfrtx.supabase.co/functions/v1/ai-proxy');
+    return await doFetch('https://vsnfqohptlporesdfrtx.supabase.co/functions/v1/ai-proxy');
   }catch(err){
-    if(err.is404){
-      throw new Error('Proxy de IA indisponível. Tente recarregar a página.');
-    }
-    throw err;
+    const base='Não foi possível conectar à IA.';
+    throw new Error(base+' ('+err.message+')');
   }
 }
 function wait(ms){return new Promise(r=>setTimeout(r,ms))}
@@ -553,18 +557,15 @@ IMPORTANTE — formato da resposta: responda APENAS com um JSON válido e comple
       const p=attempt<2?prompt:prompt+strictSuffix;
       const text=await callClaudeRaw(p,useSearch,maxTokens);
       const block=extractJSONBlock(text);
-      try{
-        return JSON.parse(block);
-      }catch(err1){
-        return JSON.parse(repairJSON(block));
-      }
+      try{return JSON.parse(block);}catch(_){return JSON.parse(repairJSON(block));}
     }catch(err){
       lastErr=err;
-      if(err.isNetwork) await wait(900*(attempt+1));
+      if(err.isNetworkErr) await wait(900*(attempt+1));
+      else break; // erro não-transiente → não vale retentativas
     }
   }
-  if(lastErr&&lastErr.isNetwork) throw lastErr;
-  throw new Error('A IA retornou uma resposta em formato inválido após algumas tentativas. Tente novamente em alguns segundos.'+(lastErr?' ('+lastErr.message+')':''));
+  if(lastErr&&lastErr.isNetworkErr) throw lastErr;
+  throw new Error('A IA retornou uma resposta inesperada. Tente novamente.'+(lastErr?' ('+lastErr.message+')':''));
 }
 function ctxBlock(){
   return`SITUAÇÃO: ${M.situacao.contexto||'N/I'}
